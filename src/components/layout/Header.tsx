@@ -1,0 +1,210 @@
+'use client';
+
+import Link from 'next/link';
+import { Menu, X, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
+import { useIsAuthenticated, useIsAdmin, useUser } from '@/stores/authStore';
+import { useLogout } from '@/hooks/mutations/useAuth';
+import { getInitials, cn } from '@/lib/utils';
+import { addLocaleToPath } from '@/lib/i18n';
+import { getMessages } from '@/lib/i18n-dict';
+import { useLocale } from '@/hooks/useLocale';
+import { startRouteLoading } from '@/components/layout/RouteLoading';
+
+export function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { locale, pathname: basePath } = useLocale();
+  const messages = getMessages(locale);
+
+  const isAuthenticated = useIsAuthenticated();
+  const isAdmin = useIsAdmin();
+  const user = useUser();
+  const logoutMutation = useLogout();
+
+  const navLinks = [
+    { href: '/', label: messages.nav.home },
+    { href: '/categories/teknoloji', label: messages.nav.tech },
+    { href: '/categories/gezi', label: messages.nav.travel },
+    { href: '/categories/kariyer', label: messages.nav.career },
+    { href: '/favorites', label: messages.auth.favorites },
+    { href: '/about', label: messages.nav.about },
+  ];
+
+  const localize = (href: string) => addLocaleToPath(href, locale);
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+    setUserMenuOpen(false);
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        {/* Logo */}
+        <Link href={localize('/')} onClick={() => startRouteLoading(localize('/'))} className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <svg className="h-5 w-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold">Bilgi Blogu</span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={localize(link.href)}
+              onClick={() => startRouteLoading(localize(link.href))}
+              className={cn(
+                'px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-accent',
+                basePath === link.href || (link.href !== '/' && basePath.startsWith(link.href))
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Right Side */}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <LocaleSwitcher />
+
+          {isAuthenticated && user ? (
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 rounded-full border px-2 py-1.5 hover:bg-accent transition-colors"
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                    {getInitials(user.displayName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden sm:block">{user.displayName.split(' ')[0]}</span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-popover p-1 shadow-lg z-20">
+                    <div className="px-3 py-2 border-b mb-1">
+                      <p className="text-sm font-medium">{user.displayName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+
+                    <Link
+                      href={localize('/profile')}
+                      onClick={() => {
+                        startRouteLoading(localize('/profile'));
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                    >
+                      {messages.auth.profile}
+                    </Link>
+                    <Link
+                      href={localize('/favorites')}
+                      onClick={() => {
+                        startRouteLoading(localize('/favorites'));
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                    >
+                      {messages.auth.favorites}
+                    </Link>
+
+                    {isAdmin && (
+                      <>
+                        <div className="border-t my-1" />
+                        <Link
+                          href={localize('/admin')}
+                          onClick={() => {
+                            startRouteLoading(localize('/admin'));
+                            setUserMenuOpen(false);
+                          }}
+                          className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                        >
+                          {messages.auth.admin}
+                        </Link>
+                      </>
+                    )}
+
+                    <div className="border-t my-1" />
+                    <button
+                      onClick={handleLogout}
+                      disabled={logoutMutation.isPending}
+                      className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-md text-destructive"
+                    >
+                      {logoutMutation.isPending ? messages.auth.loggingOut : messages.auth.logout}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <Button asChild size="sm" className="hidden md:flex">
+              <Link href={localize('/login')} onClick={() => startRouteLoading(localize('/login'))}>
+                {messages.auth.login}
+              </Link>
+            </Button>
+          )}
+
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t bg-background">
+          <nav className="container py-4 space-y-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={localize(link.href)}
+                onClick={() => {
+                  startRouteLoading(localize(link.href));
+                  setMobileMenuOpen(false);
+                }}
+                className={cn(
+                  'block px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  basePath === link.href ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-accent'
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            {!isAuthenticated && (
+              <div className="pt-4 border-t mt-4">
+                <Button className="w-full" asChild>
+                  <Link href={localize('/login')} onClick={() => startRouteLoading(localize('/login'))}>
+                    {messages.auth.login}
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
