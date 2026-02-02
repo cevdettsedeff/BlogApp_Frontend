@@ -10,7 +10,7 @@ const MAX_VISIBLE_MS = 8000;
 const START_EVENT = 'app:route-loading-start';
 const STOP_EVENT = 'app:route-loading-stop';
 
-export function startRouteLoading(href?: string) {
+export function startRouteLoading(href?: string, message?: string) {
   if (typeof window === 'undefined') return;
   if (href) {
     const url = new URL(href, window.location.href);
@@ -18,7 +18,7 @@ export function startRouteLoading(href?: string) {
     const next = url.pathname + url.search;
     if (current === next) return;
   }
-  window.dispatchEvent(new CustomEvent(START_EVENT, { detail: { href } }));
+  window.dispatchEvent(new CustomEvent(START_EVENT, { detail: { href, message } }));
 }
 
 export function stopRouteLoading() {
@@ -44,6 +44,7 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [active, setActive] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const pendingRef = useRef(false);
   const startRef = useRef(0);
   const targetPathRef = useRef<string | null>(null);
@@ -98,7 +99,7 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
     };
 
     const onStart = (event: Event) => {
-      const detail = (event as CustomEvent<{ href?: string }>).detail;
+      const detail = (event as CustomEvent<{ href?: string; message?: string }>).detail;
       if (detail?.href) {
         const url = new URL(detail.href, window.location.href);
         const current = window.location.pathname + window.location.search;
@@ -106,12 +107,14 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
         if (current === next) return;
         targetPathRef.current = url.pathname;
       }
+      setMessage(detail?.message || null);
       pendingRef.current = true;
       show();
     };
 
     const onStop = () => {
       pendingRef.current = false;
+      setMessage(null);
       hide();
     };
 
@@ -509,7 +512,9 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
           <span className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
           <span className="relative inline-flex h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </span>
-        <span className="text-sm font-medium text-muted-foreground">Yukleniyor...</span>
+        <span className="text-sm font-medium text-muted-foreground">
+          {message || 'Yukleniyor...'}
+        </span>
       </div>
     </div>
   );

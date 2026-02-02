@@ -1,4 +1,12 @@
 import { type ReactNode } from 'react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-python';
 
 export const slugify = (value: string) =>
   value
@@ -15,13 +23,32 @@ export const getReadingTime = (content: string) => {
   return Math.max(1, Math.ceil(words / 200));
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+const getPrismLanguage = (lang: string | null) => {
+  if (!lang) return null;
+  const normalized = lang.toLowerCase();
+  if (['js', 'javascript'].includes(normalized)) return 'javascript';
+  if (['ts', 'typescript'].includes(normalized)) return 'typescript';
+  if (['html', 'markup'].includes(normalized)) return 'markup';
+  if (['css'].includes(normalized)) return 'css';
+  if (['json'].includes(normalized)) return 'json';
+  if (['bash', 'sh', 'shell'].includes(normalized)) return 'bash';
+  if (['py', 'python'].includes(normalized)) return 'python';
+  return null;
+};
+
 const renderInline = (text: string) => {
   const parts: ReactNode[] = [];
   let rest = text;
   let keyIndex = 0;
 
   while (rest.length) {
-    const match = rest.match(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/);
+    const match = rest.match(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\))/);
     if (!match || match.index === undefined) {
       parts.push(rest);
       break;
@@ -42,6 +69,20 @@ const renderInline = (text: string) => {
           {token.slice(1, -1)}
         </code>
       );
+    } else if (token.startsWith('![')) {
+      const imageMatch = token.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (imageMatch) {
+        const [, alt, src] = imageMatch;
+        parts.push(
+          <img
+            key={`img-${keyIndex++}`}
+            src={src}
+            alt={alt}
+            className="my-3 max-h-80 w-full rounded-md border object-cover"
+            loading="lazy"
+          />
+        );
+      }
     } else if (token.startsWith('[')) {
       const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
@@ -74,6 +115,7 @@ export const renderMarkdown = (markdown: string) => {
   let listType: 'ordered' | 'unordered' | null = null;
   let quoteLines: string[] = [];
   let codeLines: string[] = [];
+  let codeLang: string | null = null;
   let inCode = false;
 
   const flushParagraph = () => {
@@ -126,12 +168,32 @@ export const renderMarkdown = (markdown: string) => {
 
   const flushCode = () => {
     if (!codeLines.length) return;
+    const raw = codeLines.join('\n');
+    const prismLang = getPrismLanguage(codeLang);
+    const highlighted = prismLang
+      ? Prism.highlight(raw, Prism.languages[prismLang] || Prism.languages.plain, prismLang)
+      : escapeHtml(raw);
     blocks.push(
-      <pre key={`code-${blocks.length}`} className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-        <code>{codeLines.join('\n')}</code>
-      </pre>
+      <div key={`code-${blocks.length}`} className="space-y-1">
+        {codeLang && (
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            {codeLang}
+          </div>
+        )}
+        <pre
+          className={`overflow-x-auto rounded-md bg-muted p-3 text-xs${
+            prismLang ? ` language-${prismLang}` : ''
+          }`}
+        >
+          <code
+            className={prismLang ? `language-${prismLang}` : undefined}
+            dangerouslySetInnerHTML={{ __html: highlighted }}
+          />
+        </pre>
+      </div>
     );
     codeLines = [];
+    codeLang = null;
   };
 
   lines.forEach((line) => {
@@ -143,6 +205,8 @@ export const renderMarkdown = (markdown: string) => {
         flushParagraph();
         flushList();
         flushQuote();
+        const lang = line.trim().slice(3).trim();
+        codeLang = lang || null;
         inCode = true;
       }
       return;
@@ -170,6 +234,24 @@ export const renderMarkdown = (markdown: string) => {
         <h3 key={`h-${blocks.length}`} className={headingClass}>
           {renderInline(text)}
         </h3>
+      );
+      return;
+    }
+
+    const imageLineMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imageLineMatch) {
+      flushParagraph();
+      flushList();
+      flushQuote();
+      const [, alt, src] = imageLineMatch;
+      blocks.push(
+        <img
+          key={`img-${blocks.length}`}
+          src={src}
+          alt={alt}
+          className="my-4 max-h-96 w-full rounded-lg border object-cover"
+          loading="lazy"
+        />
       );
       return;
     }

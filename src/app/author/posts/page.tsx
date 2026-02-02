@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { formatDate } from '@/lib/utils';
 import { useAdminPostsStore } from '@/stores/adminPostsStore';
+import { useUser } from '@/stores/authStore';
 
 type SortKey = 'title' | 'categoryName' | 'status' | 'authorDisplayName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
@@ -56,7 +57,7 @@ const getPageItems = (current: number, total: number) => {
   return items;
 };
 
-export default function AdminPostsPage() {
+export default function AuthorPostsPage() {
   const { locale } = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -66,6 +67,7 @@ export default function AdminPostsPage() {
 
   const posts = useAdminPostsStore((state) => state.posts);
   const deletePost = useAdminPostsStore((state) => state.deletePost);
+  const user = useUser();
 
   const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get('category') ?? '');
@@ -205,13 +207,13 @@ export default function AdminPostsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t.title}</h1>
-          <p className="text-muted-foreground">{t.subtitle}</p>
+          <h1 className="text-2xl font-bold">Yazılar</h1>
+          <p className="text-muted-foreground">Kendi yazılarını yönet</p>
         </div>
         <Button asChild>
-          <Link href={localizedPath('/admin/posts/new')}>
+          <Link href={localizedPath('/author/posts/new')}>
             <Plus className="h-4 w-4 mr-2" />
-            {t.newPost}
+            Yeni Yazı
           </Link>
         </Button>
       </div>
@@ -220,7 +222,7 @@ export default function AdminPostsPage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t.searchPlaceholder}
+            placeholder="Yazı ara..."
             className="pl-10"
             value={search}
             onChange={(event) => {
@@ -274,7 +276,7 @@ export default function AdminPostsPage() {
                   className="inline-flex items-center gap-1"
                   onClick={() => onSort('title')}
                 >
-                  {t.tableTitle}
+                  Başlık
                   {renderSortIcon('title')}
                 </button>
               </th>
@@ -284,7 +286,7 @@ export default function AdminPostsPage() {
                   className="inline-flex items-center gap-1"
                   onClick={() => onSort('categoryName')}
                 >
-                  {t.tableCategory}
+                  Kategori
                   {renderSortIcon('categoryName')}
                 </button>
               </th>
@@ -294,7 +296,7 @@ export default function AdminPostsPage() {
                   className="inline-flex items-center gap-1"
                   onClick={() => onSort('status')}
                 >
-                  {t.tableStatus}
+                  Durum
                   {renderSortIcon('status')}
                 </button>
               </th>
@@ -304,7 +306,7 @@ export default function AdminPostsPage() {
                   className="inline-flex items-center gap-1"
                   onClick={() => onSort('authorDisplayName')}
                 >
-                  {t.tableAuthor}
+                  Yazar
                   {renderSortIcon('authorDisplayName')}
                 </button>
               </th>
@@ -314,84 +316,96 @@ export default function AdminPostsPage() {
                   className="inline-flex items-center gap-1"
                   onClick={() => onSort('createdAt')}
                 >
-                  {t.tableDate}
+                  Tarih
                   {renderSortIcon('createdAt')}
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-sm font-medium">{t.tableActions}</th>
+              <th className="text-right px-4 py-3 text-sm font-medium">İşlemler</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {pagedPosts.map((post) => (
-              <tr key={post.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3">
-                  <p className="font-medium line-clamp-1">{post.title}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant="secondary">{post.categoryName}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={post.status === 'Published' ? 'default' : 'outline'}
-                    className={post.status === 'Published' ? 'bg-green-500' : ''}
-                  >
-                    {post.status === 'Published' ? t.statusPublished : t.statusDraft}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {post.authorDisplayName}
-                </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {formatDate(post.createdAt)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t.actionView}
+            {pagedPosts.map((post) => {
+              const canManage =
+                user?.role === 'Admin' || (user && post.authorDisplayName === user.displayName);
+              return (
+                <tr key={post.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3">
+                    <p className="font-medium line-clamp-1">{post.title}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="secondary">{post.categoryName}</Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      variant={post.status === 'Published' ? 'default' : 'outline'}
+                      className={post.status === 'Published' ? 'bg-green-500' : ''}
                     >
-                      <Link
-                        href={localizedPath(`/admin/posts/${post.id}`)}
-                        aria-label={t.actionView}
+                      {post.status === 'Published' ? t.statusPublished : t.statusDraft}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {post.authorDisplayName}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {formatDate(post.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Görüntüle"
                       >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t.actionEdit}
-                    >
-                      <Link
-                        href={localizedPath(`/admin/posts/${post.id}/edit`)}
-                        aria-label={t.actionEdit}
+                        <Link
+                          href={localizedPath(`/author/posts/${post.id}`)}
+                          aria-label="Görüntüle"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild={canManage}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={!canManage}
+                        title={canManage ? 'Düzenle' : 'Yetkiniz yok'}
                       >
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setDeleteTargetId(post.id)}
-                      aria-label={t.actionDelete}
-                      title={t.actionDelete}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                        {canManage ? (
+                          <Link
+                            href={localizedPath(`/author/posts/${post.id}/edit`)}
+                            aria-label="Düzenle"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <span>
+                            <Edit className="h-4 w-4" />
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        disabled={!canManage}
+                        onClick={() => canManage && setDeleteTargetId(post.id)}
+                        aria-label="Sil"
+                        title={canManage ? 'Sil' : 'Yetkiniz yok'}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {pagedPosts.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  {t.empty}
+                  Yazı bulunamadı.
                 </td>
               </tr>
             )}
@@ -401,7 +415,7 @@ export default function AdminPostsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
-          {t.totalLabel} {filteredPosts.length} {t.totalUnit}
+          Toplam {filteredPosts.length} yazı
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2">
@@ -433,7 +447,7 @@ export default function AdminPostsPage() {
               }}
               disabled={currentPage === 1}
             >
-              {t.prev}
+              Önceki
             </Button>
             {pageItems.map((item, index) =>
               item === 'ellipsis' ? (
@@ -466,7 +480,7 @@ export default function AdminPostsPage() {
               }}
               disabled={currentPage === totalPages}
             >
-              {t.next}
+              Sonraki
             </Button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+@import 'prismjs/themes/prism.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -77,6 +79,67 @@
   html[data-route-loading='1'] .route-fade {
     opacity: 0.65;
     filter: blur(0.6px);
+  }
+}
+
+/* Prism theme tweaks: light uses prism.css, dark overrides below */
+@layer base {
+  .dark pre[class*='language-'],
+  .dark code[class*='language-'] {
+    color: #e6e6e6;
+    background: transparent;
+  }
+  .dark .token.comment,
+  .dark .token.prolog,
+  .dark .token.doctype,
+  .dark .token.cdata {
+    color: #8b949e;
+  }
+  .dark .token.punctuation {
+    color: #c9d1d9;
+  }
+  .dark .token.property,
+  .dark .token.tag,
+  .dark .token.boolean,
+  .dark .token.number,
+  .dark .token.constant,
+  .dark .token.symbol,
+  .dark .token.deleted {
+    color: #ffa657;
+  }
+  .dark .token.selector,
+  .dark .token.attr-name,
+  .dark .token.string,
+  .dark .token.char,
+  .dark .token.builtin,
+  .dark .token.inserted {
+    color: #7ee787;
+  }
+  .dark .token.operator,
+  .dark .token.entity,
+  .dark .token.url,
+  .dark .token.variable {
+    color: #79c0ff;
+  }
+  .dark .token.atrule,
+  .dark .token.attr-value,
+  .dark .token.function,
+  .dark .token.class-name {
+    color: #d2a8ff;
+  }
+  .dark .token.keyword {
+    color: #ff7b72;
+  }
+  .dark .token.regex,
+  .dark .token.important {
+    color: #ffa657;
+  }
+  .dark .token.important,
+  .dark .token.bold {
+    font-weight: 600;
+  }
+  .dark .token.italic {
+    font-style: italic;
   }
 }
 

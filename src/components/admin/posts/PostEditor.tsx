@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bold, Italic, List, ListOrdered, Quote, Heading2, Heading3 } from 'lucide-react';
+import { ArrowLeft, Bold, Italic, List, ListOrdered, Quote, Heading2, Heading3, Image, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,9 +52,10 @@ const defaultForm: PostFormState = {
 interface PostEditorProps {
   mode: 'create' | 'edit';
   postId?: string;
+  currentAuthorDisplayName?: string;
 }
 
-export function PostEditor({ mode, postId }: PostEditorProps) {
+export function PostEditor({ mode, postId, currentAuthorDisplayName }: PostEditorProps) {
   const router = useRouter();
   const { locale } = useLocale();
   const messages = getMessages(locale);
@@ -73,10 +74,15 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
     if (mode === 'edit' && existingPost) {
       return { ...defaultForm, ...existingPost };
     }
-    return { ...defaultForm, createdAt: new Date().toISOString() };
+    return {
+      ...defaultForm,
+      createdAt: new Date().toISOString(),
+      authorDisplayName: currentAuthorDisplayName || defaultForm.authorDisplayName,
+    };
   });
 
   const [contentMode, setContentMode] = useState<'split' | 'edit' | 'preview'>('split');
+  const [codeLanguage, setCodeLanguage] = useState('text');
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -183,6 +189,34 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
     updateContent(nextValue, range.start, range.start + nextBlock.length);
   };
 
+  const insertImage = () => {
+    const element = contentRef.current;
+    if (!element) return;
+    const { selectionStart, selectionEnd, value } = element;
+    const selected = value.slice(selectionStart, selectionEnd).trim();
+    const altText = selected || 'gorsel-aciklama';
+    const urlText = 'https://...';
+    const template = `![${altText}](${urlText})`;
+    const nextValue = value.slice(0, selectionStart) + template + value.slice(selectionEnd);
+    const urlStart = selectionStart + template.indexOf(urlText);
+    const urlEnd = urlStart + urlText.length;
+    updateContent(nextValue, urlStart, urlEnd);
+  };
+
+  const insertCodeBlock = () => {
+    const element = contentRef.current;
+    if (!element) return;
+    const { selectionStart, selectionEnd, value } = element;
+    const selected = value.slice(selectionStart, selectionEnd);
+    const content = selected || 'kod';
+    const lang = codeLanguage === 'text' ? '' : codeLanguage;
+    const template = `\n\`\`\`${lang}\n${content}\n\`\`\`\n`;
+    const nextValue = value.slice(0, selectionStart) + template + value.slice(selectionEnd);
+    const contentStart = selectionStart + template.indexOf(content);
+    const contentEnd = contentStart + content.length;
+    updateContent(nextValue, contentStart, contentEnd);
+  };
+
   const handleContentKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const modifier = event.metaKey || event.ctrlKey;
     if (!modifier) return;
@@ -235,6 +269,15 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
     }
   }, [mode, existingPost]);
 
+  useEffect(() => {
+    if (mode !== 'create') return;
+    if (!currentAuthorDisplayName) return;
+    setFormState((prev) => ({
+      ...prev,
+      authorDisplayName: currentAuthorDisplayName,
+    }));
+  }, [mode, currentAuthorDisplayName]);
+
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -255,7 +298,7 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
         createdAt: now,
         publishedAt,
         categoryName: formState.categoryName || t.defaultCategory,
-        authorDisplayName: formState.authorDisplayName || 'Admin',
+        authorDisplayName: currentAuthorDisplayName || formState.authorDisplayName || 'Admin',
         coverImage: formState.coverImage || '',
         readingTime,
       };
@@ -493,7 +536,48 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
               <Quote className="h-4 w-4 mr-1" />
               {t.toolbarQuote}
             </Button>
-            <span className="text-muted-foreground">{t.toolbarHint}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={insertImage}
+              title={t.shortcutImage}
+            >
+              <Image className="h-4 w-4 mr-1" />
+              {t.toolbarImage}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={insertCodeBlock}
+              title={t.shortcutCode}
+            >
+              <Code className="h-4 w-4 mr-1" />
+              {t.toolbarCode}
+            </Button>
+            <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground">
+              <span className="text-foreground">{t.toolbarCodeLang || 'Kod dili'}</span>
+              <select
+                className="h-7 min-w-[120px] rounded-md border bg-background px-2 text-xs text-foreground"
+                value={codeLanguage}
+                onChange={(event) => setCodeLanguage(event.target.value)}
+                aria-label={t.toolbarCodeLang || 'Kod dili'}
+                style={{
+                  color: 'hsl(var(--foreground))',
+                  backgroundColor: 'hsl(var(--background))',
+                }}
+              >
+                <option value="text">{t.codeLangText || 'Metin'}</option>
+                <option value="js">{t.codeLangJs || 'JavaScript'}</option>
+                <option value="ts">{t.codeLangTs || 'TypeScript'}</option>
+                <option value="html">{t.codeLangHtml || 'HTML'}</option>
+                <option value="css">{t.codeLangCss || 'CSS'}</option>
+                <option value="json">{t.codeLangJson || 'JSON'}</option>
+                <option value="bash">{t.codeLangBash || 'Bash'}</option>
+                <option value="python">{t.codeLangPython || 'Python'}</option>
+              </select>
+            </div>
           </div>
           <div
             className={`grid gap-3 ${contentMode === 'split' ? 'md:grid-cols-2' : 'grid-cols-1'}`}

@@ -12,10 +12,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="relative flex-1">
-        <div className="route-fade">
-          {children}
+        <div className="relative">
+          <div className="route-fade">
+            {children}
+          </div>
+          <RouteLoading variant="skeleton" />
         </div>
-        <RouteLoading variant="skeleton" />
       </main>
       <Footer />
     </div>

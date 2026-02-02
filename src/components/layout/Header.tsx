@@ -24,6 +24,7 @@ export function Header() {
   const isAuthenticated = useIsAuthenticated();
   const isAdmin = useIsAdmin();
   const user = useUser();
+  const isAuthor = user?.role === 'Author' || user?.role === 'Admin';
   const logoutMutation = useLogout();
 
   const navLinks = [
@@ -124,18 +125,18 @@ export function Header() {
                       {messages.auth.favorites}
                     </Link>
 
-                    {isAdmin && (
+                    {isAuthor && (
                       <>
                         <div className="border-t my-1" />
                         <Link
-                          href={localize('/admin')}
+                          href={localize(isAdmin ? '/admin' : '/author/posts')}
                           onClick={() => {
-                            startRouteLoading(localize('/admin'));
+                            startRouteLoading(localize(isAdmin ? '/admin' : '/author/posts'));
                             setUserMenuOpen(false);
                           }}
                           className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
                         >
-                          {messages.auth.admin}
+                          {isAdmin ? messages.auth.admin : 'Yazar Paneli'}
                         </Link>
                       </>
                     )}
