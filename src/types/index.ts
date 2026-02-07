@@ -18,29 +18,29 @@ export interface PagedResponse<T> {
 // ============================================
 export interface MeDto {
   id: string;
-  displayName: string;
-  email: string;
-  role: 'User' | 'Author' | 'Admin';
+  displayName: string | null;
+  email: string | null;
+  role: 'User' | 'Author' | 'Admin' | null;
+  authorId?: string | null;
   linkedInUrl: string | null;
   instagramUrl: string | null;
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
   expiresAt: string;
   user: MeDto;
 }
 
 export interface LoginRequest {
-  email: string;
-  password: string;
+  email: string | null;
+  password: string | null;
 }
 
 export interface RegisterRequest {
-  displayName: string;
-  email: string;
-  password: string;
+  displayName: string | null;
+  email: string | null;
+  password: string | null;
 }
 
 export interface RegisterResponse {
@@ -48,15 +48,15 @@ export interface RegisterResponse {
 }
 
 export interface GoogleLoginRequest {
-  credential: string;
+  credential: string | null;
 }
 
 export interface RefreshTokenRequest {
-  refreshToken: string;
+  refreshToken?: string | null;
 }
 
 export interface LogoutRequest {
-  refreshToken: string;
+  refreshToken?: string | null;
 }
 
 // ============================================
@@ -64,40 +64,41 @@ export interface LogoutRequest {
 // ============================================
 export interface PostListItemDto {
   id: string;
-  title: string;
-  slug: string;
-  summary: string;
+  title: string | null;
+  slug: string | null;
+  summary: string | null;
   coverImageUrl: string | null;
-  categoryName: string;
-  categorySlug: string;
-  authorDisplayName: string;
+  categoryName: string | null;
+  categorySlug: string | null;
+  authorDisplayName: string | null;
   publishedAt: string | null;
   viewCount: number;
 }
 
 export interface RelatedPostDto {
   id: string;
-  title: string;
-  slug: string;
+  title: string | null;
+  slug: string | null;
   coverImageUrl: string | null;
-  categorySlug: string;
+  categorySlug: string | null;
   publishedAt: string | null;
 }
 
 export interface PostDetailDto {
   id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  content: string;
+  title: string | null;
+  slug: string | null;
+  summary: string | null;
+  content: string | null;
   coverImageUrl: string | null;
-  categoryName: string;
-  categorySlug: string;
-  authorDisplayName: string;
+  categoryName: string | null;
+  categorySlug: string | null;
+  authorDisplayName: string | null;
   publishedAt: string | null;
   viewCount: number;
-  tags: string[];
-  relatedPosts: RelatedPostDto[];
+  readingTimeMinutes: number;
+  tags: string[] | null;
+  relatedPosts: RelatedPostDto[] | null;
 }
 
 export interface PostListQuery {
@@ -111,59 +112,83 @@ export interface PostListQuery {
 // Admin Post Types
 export interface AdminPostListItemDto {
   id: string;
-  title: string;
-  slug: string;
-  status: 'Draft' | 'Published';
-  categoryName: string;
-  authorDisplayName: string;
+  title: string | null;
+  slug: string | null;
+  language: string | null;
+  status: 'Draft' | 'Published' | null;
+  categoryName: string | null;
+  authorDisplayName: string | null;
   createdAt: string;
   publishedAt: string | null;
 }
 
 export interface AdminPostDetailDto {
   id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  content: string;
+  title: string | null;
+  slug: string | null;
+  summary: string | null;
+  content: string | null;
   coverImageUrl: string | null;
-  status: string;
+  status: string | null;
   categoryId: string;
-  categoryName: string;
+  categoryName: string | null;
   authorId: string;
-  authorDisplayName: string;
+  authorDisplayName: string | null;
   createdAt: string;
   publishedAt: string | null;
 }
 
 export interface CreatePostRequest {
-  title: string;
-  summary: string;
-  content: string;
+  title: string | null;
+  summary: string | null;
+  content: string | null;
   categoryId: string;
   authorId: string;
   coverImageUrl?: string | null;
+  language?: string | null;
 }
 
 export interface CreatePostResponse {
   id: string;
-  slug: string;
+  slug: string | null;
 }
 
 export interface UpdatePostRequest {
-  title: string;
-  summary: string;
-  content: string;
+  title: string | null;
+  summary: string | null;
+  content: string | null;
   categoryId: string;
   coverImageUrl?: string | null;
+  language?: string | null;
 }
 
 export interface UpdatePostResponse {
   id: string;
-  slug: string;
+  slug: string | null;
 }
 
 export interface AdminListPostsQuery {
+  q?: string;
+  categorySlug?: string;
+  status?: string;
+  language?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// Author Post Types
+export interface AuthorPostListItemDto {
+  id: string;
+  title: string | null;
+  slug: string | null;
+  language: string | null;
+  status: 'Draft' | 'Published' | null;
+  categoryName: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+}
+
+export interface AuthorListPostsQuery {
   q?: string;
   categorySlug?: string;
   status?: string;
@@ -176,13 +201,13 @@ export interface AdminListPostsQuery {
 // ============================================
 export interface CategoryDto {
   id: string;
-  name: string;
-  slug: string;
+  name: string | null;
+  slug: string | null;
 }
 
 export interface CreateCategoryRequest {
-  name: string;
-  slug: string;
+  name: string | null;
+  slug: string | null;
 }
 
 export interface CreateCategoryResponse {
@@ -190,8 +215,8 @@ export interface CreateCategoryResponse {
 }
 
 export interface UpdateCategoryRequest {
-  name: string;
-  slug: string;
+  name: string | null;
+  slug: string | null;
 }
 
 export interface UpdateCategoryResponse {
@@ -204,39 +229,51 @@ export interface UpdateCategoryResponse {
 export interface CommentDto {
   id: string;
   postId: string;
-  content: string;
-  status: string;
+  parentCommentId: string | null;
+  content: string | null;
+  status: string | null;
   userDisplayName: string | null;
   guestName: string | null;
   createdAt: string;
+  likeCount: number;
+  dislikeCount: number;
+  userReaction: string | null;
+  replies: CommentDto[];
 }
 
 export interface CreateCommentRequest {
   postId: string;
-  content: string;
+  content: string | null;
   userId?: string | null;
   guestName?: string | null;
   guestEmail?: string | null;
+  parentCommentId?: string | null;
 }
 
 export interface CreateCommentResponse {
   commentId: string;
 }
 
+export interface ReactCommentResponse {
+  success: boolean;
+  likeCount: number;
+  dislikeCount: number;
+}
+
 // Admin Comment Types
 export interface PendingCommentDto {
   id: string;
   postId: string;
-  postTitle: string;
-  content: string;
+  postTitle: string | null;
+  content: string | null;
   userDisplayName: string | null;
   guestName: string | null;
-  status: string;
+  status: string | null;
   createdAt: string;
 }
 
 export interface ModerateCommentRequest {
-  status: 'Pending' | 'Approved' | 'Spam';
+  status: 'Pending' | 'Approved' | 'Spam' | null;
 }
 
 // ============================================
@@ -244,8 +281,8 @@ export interface ModerateCommentRequest {
 // ============================================
 export interface FavoritePostDto {
   postId: string;
-  title: string;
-  slug: string;
+  title: string | null;
+  slug: string | null;
   coverImageUrl: string | null;
   favoritedAt: string;
 }
@@ -271,15 +308,15 @@ export interface IsFavoriteResponse {
 // ============================================
 export interface ProfileDto {
   id: string;
-  displayName: string;
-  email: string;
-  role: string;
+  displayName: string | null;
+  email: string | null;
+  role: string | null;
   linkedInUrl: string | null;
   instagramUrl: string | null;
 }
 
 export interface UpdateEmailRequest {
-  newEmail: string;
+  newEmail: string | null;
 }
 
 export interface UpdateEmailResponse {
@@ -287,8 +324,8 @@ export interface UpdateEmailResponse {
 }
 
 export interface UpdatePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
+  currentPassword: string | null;
+  newPassword: string | null;
 }
 
 export interface UpdatePasswordResponse {
@@ -308,42 +345,46 @@ export interface UpdateSocialsResponse {
 // Settings Types
 // ============================================
 export interface PublicSettingsDto {
-  siteTitle: string;
-  siteDescription: string;
-  themeMode: 'Light' | 'Dark' | 'Auto';
+  siteTitle: string | null;
+  siteDescription: string | null;
+  themeMode: 'Light' | 'Dark' | 'Auto' | null;
   newsletterEnabled: boolean;
-  newsletterTitle: string;
-  newsletterDescription: string;
+  newsletterTitle: string | null;
+  newsletterDescription: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
   featuredPostId: string | null;
+  viewCountDelayMs: number;
 }
 
 export interface AdminSettingsDto {
   id: string;
-  siteTitle: string;
-  siteDescription: string;
-  themeMode: string;
+  siteTitle: string | null;
+  siteDescription: string | null;
+  themeMode: string | null;
   newsletterEnabled: boolean;
-  newsletterTitle: string;
-  newsletterDescription: string;
+  newsletterTitle: string | null;
+  newsletterDescription: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
   featuredPostId: string | null;
+  viewCountDelayMs: number;
   createdAt: string;
   updatedAt: string | null;
 }
 
 export interface UpdateSettingsRequest {
-  siteTitle: string;
-  siteDescription: string;
-  themeMode: 'Light' | 'Dark' | 'Auto';
+  language: string;
+  siteTitle: string | null;
+  siteDescription: string | null;
+  themeMode: 'Light' | 'Dark' | 'Auto' | null;
   newsletterEnabled: boolean;
-  newsletterTitle: string;
-  newsletterDescription: string;
+  newsletterTitle: string | null;
+  newsletterDescription: string | null;
   logoUrl?: string | null;
   faviconUrl?: string | null;
   featuredPostId?: string | null;
+  viewCountDelayMs: number;
 }
 
 export interface UpdateSettingsResponse {

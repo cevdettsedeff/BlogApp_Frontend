@@ -10,7 +10,16 @@ export const commentKeys = {
 export function useComments(postId: string) {
   return useQuery({
     queryKey: commentKeys.listByPost(postId),
-    queryFn: () => commentService.listByPost(postId),
+    queryFn: async () => {
+      const roots = await commentService.listByPost(postId);
+      const withReplies = await Promise.all(
+        roots.map(async (comment) => ({
+          ...comment,
+          replies: await commentService.listReplies(comment.id),
+        }))
+      );
+      return withReplies;
+    },
     enabled: !!postId,
   });
 }

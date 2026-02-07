@@ -8,38 +8,6 @@ import { useLocale } from '@/hooks/useLocale';
 import { startRouteLoading } from '@/components/layout/RouteLoading';
 import { getMessages } from '@/lib/i18n-dict';
 
-const MOCK_EMAIL = 'admin@admin.com.tr';
-const MOCK_PASSWORD = 'admin123';
-const MOCK_AUTHOR_EMAIL = 'cevdet@cevdet.com.tr';
-const MOCK_AUTHOR_PASSWORD = 'cevdet123';
-
-const normalize = (value: string) => {
-  const trimmed = value.trim().toLowerCase();
-  const firstPart = trimmed.split(/[,\s;]/)[0] || trimmed;
-  return firstPart.replace(/\s+/g, '');
-};
-
-const normalizePassword = (value: string) => {
-  const base = normalize(value);
-  return base.replace(/[.\-_/]+$/g, '');
-};
-
-function buildMockAuthResponse(email: string, role: 'Admin' | 'Author', displayName: string) {
-  return {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    user: {
-      id: role === 'Admin' ? 'mock-admin-id' : 'mock-author-id',
-      displayName,
-      email,
-      role,
-      linkedInUrl: null,
-      instagramUrl: null,
-    },
-  };
-}
-
 export function useLogin() {
   const router = useRouter();
   const { locale } = useLocale();
@@ -50,19 +18,9 @@ export function useLogin() {
     onMutate: () => {
       startRouteLoading(undefined, messages.auth.loggingIn);
     },
-    mutationFn: (data: LoginRequest) => {
-      const email = normalize(data.email);
-      const password = normalizePassword(data.password);
-      if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
-        return Promise.resolve(buildMockAuthResponse(email, 'Admin', 'Admin'));
-      }
-      if (email === MOCK_AUTHOR_EMAIL && password === MOCK_AUTHOR_PASSWORD) {
-        return Promise.resolve(buildMockAuthResponse(email, 'Author', 'Cevdet'));
-      }
-      return authService.login(data);
-    },
+    mutationFn: (data: LoginRequest) => authService.login(data),
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
+      setAuth(data.user, data.accessToken);
       const href =
         data.user.role === 'Admin'
           ? addLocaleToPath('/admin', locale)
@@ -98,7 +56,7 @@ export function useGoogleLogin() {
   return useMutation({
     mutationFn: (data: GoogleLoginRequest) => authService.googleLogin(data),
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
+      setAuth(data.user, data.accessToken);
       const href = addLocaleToPath('/', locale);
       startRouteLoading(href);
       router.push(href);
@@ -111,17 +69,14 @@ export function useLogout() {
   const { locale } = useLocale();
   const messages = getMessages(locale);
   const queryClient = useQueryClient();
-  const { refreshToken, logout } = useAuthStore();
+  const { logout } = useAuthStore();
 
   return useMutation({
     onMutate: () => {
       startRouteLoading(undefined, messages.auth.loggingOut);
     },
     mutationFn: () => {
-      if (refreshToken) {
-        return authService.logout({ refreshToken });
-      }
-      return Promise.resolve({ success: true });
+      return authService.logout();
     },
     onSettled: () => {
       logout();

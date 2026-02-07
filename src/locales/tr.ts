@@ -191,6 +191,7 @@
         submit: 'Yorumu gönder',
         likeLabel: 'Beğen',
         dislikeLabel: 'Beğenme',
+        loginToReact: 'Beğenmek için giriş yapın.',
         countLabel: 'yorum',
         pendingNotice: 'Yorumlar admin onayından sonra yayınlanır.',
         pendingTitle: 'Onay bekleyen yorumlar',

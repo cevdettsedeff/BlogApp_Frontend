@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,10 +20,12 @@ import { useLocale } from '@/hooks/useLocale';
 import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { formatDate } from '@/lib/utils';
-import { useAdminPostsStore } from '@/stores/adminPostsStore';
-import { useUser } from '@/stores/authStore';
+import { authorPostService } from '@/lib/api/services/authorPostService';
+import { adminCategoryService } from '@/lib/api/services/adminCategoryService';
+import { adminPostService } from '@/lib/api/services/adminPostService';
+import type { AuthorPostListItemDto, CategoryDto } from '@/types';
 
-type SortKey = 'title' | 'categoryName' | 'status' | 'authorDisplayName' | 'createdAt';
+type SortKey = 'title' | 'categoryName' | 'status' | 'createdAt';
 type SortDir = 'asc' | 'desc';
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -30,13 +33,7 @@ const DEFAULT_SORT_KEY: SortKey = 'createdAt';
 const DEFAULT_SORT_DIR: SortDir = 'desc';
 
 const isSortKey = (value: string | null): value is SortKey => {
-  return (
-    value === 'title' ||
-    value === 'categoryName' ||
-    value === 'status' ||
-    value === 'authorDisplayName' ||
-    value === 'createdAt'
-  );
+  return value === 'title' || value === 'categoryName' || value === 'status' || value === 'createdAt';
 };
 
 const isSortDir = (value: string | null): value is SortDir => value === 'asc' || value === 'desc';
@@ -64,10 +61,7 @@ export default function AuthorPostsPage() {
   const router = useRouter();
   const messages = getMessages(locale);
   const t = messages.adminPosts;
-
-  const posts = useAdminPostsStore((state) => state.posts);
-  const deletePost = useAdminPostsStore((state) => state.deletePost);
-  const user = useUser();
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get('category') ?? '');
@@ -123,19 +117,30 @@ export default function AuthorPostsPage() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const matchesSearch =
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.slug.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = categoryFilter ? post.categoryName === categoryFilter : true;
-      const matchesStatus = statusFilter ? post.status === statusFilter : true;
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [posts, search, categoryFilter, statusFilter]);
+  const { data: categories = [] } = useQuery({
+    queryKey: ['admin-categories', locale],
+    queryFn: () => adminCategoryService.list(locale),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['author-posts', locale, { search, categoryFilter, statusFilter, page, pageSize }],
+    queryFn: () =>
+      authorPostService.list(locale, {
+        q: search || undefined,
+        categorySlug: categoryFilter || undefined,
+        status: statusFilter || undefined,
+        page,
+        pageSize,
+      }),
+    keepPreviousData: true,
+  });
+
+  const posts = data?.items ?? [];
+  const totalCount = data?.totalCount ?? posts.length;
 
   const sortedPosts = useMemo(() => {
-    const sorted = [...filteredPosts];
+    const sorted = [...posts];
     sorted.sort((a, b) => {
       const valueA = a[sortKey];
       const valueB = b[sortKey];
@@ -149,14 +154,11 @@ export default function AuthorPostsPage() {
         : String(valueB).localeCompare(String(valueA));
     });
     return sorted;
-  }, [filteredPosts, sortKey, sortDir]);
+  }, [posts, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedPosts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedPosts.slice(start, start + pageSize);
-  }, [sortedPosts, currentPage, pageSize]);
+  const pagedPosts = sortedPosts;
 
   useEffect(() => {
     if (page > totalPages) {
@@ -167,6 +169,13 @@ export default function AuthorPostsPage() {
 
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminPostService.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['author-posts'] });
+    },
+  });
+
   const deleteTarget = useMemo(
     () => posts.find((post) => post.id === deleteTargetId) ?? null,
     [posts, deleteTargetId]
@@ -174,7 +183,7 @@ export default function AuthorPostsPage() {
 
   const confirmDelete = () => {
     if (!deleteTargetId) return;
-    deletePost(deleteTargetId);
+    deleteMutation.mutate(deleteTargetId);
     setDeleteTargetId(null);
   };
 
@@ -245,9 +254,11 @@ export default function AuthorPostsPage() {
             }}
           >
             <option value="">{t.allCategories}</option>
-            <option value="Teknoloji">{t.categoryTech}</option>
-            <option value="Gezi">{t.categoryTravel}</option>
-            <option value="Kariyer">{t.categoryCareer}</option>
+            {categories.map((category: CategoryDto) => (
+              <option key={category.id} value={category.slug ?? ''}>
+                {category.name}
+              </option>
+            ))}
           </select>
           <select
             className="h-10 rounded-md border bg-background px-3 text-sm"
@@ -304,16 +315,6 @@ export default function AuthorPostsPage() {
                 <button
                   type="button"
                   className="inline-flex items-center gap-1"
-                  onClick={() => onSort('authorDisplayName')}
-                >
-                  Yazar
-                  {renderSortIcon('authorDisplayName')}
-                </button>
-              </th>
-              <th className="text-left px-4 py-3 text-sm font-medium">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1"
                   onClick={() => onSort('createdAt')}
                 >
                   Tarih
@@ -324,10 +325,14 @@ export default function AuthorPostsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {pagedPosts.map((post) => {
-              const canManage =
-                user?.role === 'Admin' || (user && post.authorDisplayName === user.displayName);
-              return (
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : (
+              pagedPosts.map((post: AuthorPostListItemDto) => (
                 <tr key={post.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <p className="font-medium line-clamp-1">{post.title}</p>
@@ -344,67 +349,38 @@ export default function AuthorPostsPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {post.authorDisplayName}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {formatDate(post.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Görüntüle"
-                      >
-                        <Link
-                          href={localizedPath(`/author/posts/${post.id}`)}
-                          aria-label="Görüntüle"
-                        >
+                      <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Görüntüle">
+                        <Link href={localizedPath(`/author/posts/${post.id}`)} aria-label="Görüntüle">
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
-                        asChild={canManage}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        disabled={!canManage}
-                        title={canManage ? 'Düzenle' : 'Yetkiniz yok'}
-                      >
-                        {canManage ? (
-                          <Link
-                            href={localizedPath(`/author/posts/${post.id}/edit`)}
-                            aria-label="Düzenle"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <span>
-                            <Edit className="h-4 w-4" />
-                          </span>
-                        )}
+                      <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Düzenle">
+                        <Link href={localizedPath(`/author/posts/${post.id}/edit`)} aria-label="Düzenle">
+                          <Edit className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
-                        disabled={!canManage}
-                        onClick={() => canManage && setDeleteTargetId(post.id)}
+                        onClick={() => setDeleteTargetId(post.id)}
                         aria-label="Sil"
-                        title={canManage ? 'Sil' : 'Yetkiniz yok'}
+                        title="Sil"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>
                 </tr>
-              );
-            })}
-            {pagedPosts.length === 0 && (
+              ))
+            )}
+            {!isLoading && pagedPosts.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Yazı bulunamadı.
                 </td>
               </tr>
@@ -415,7 +391,7 @@ export default function AuthorPostsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
-          Toplam {filteredPosts.length} yazı
+          Toplam {totalCount} yazı
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2">

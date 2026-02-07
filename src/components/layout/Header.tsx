@@ -14,6 +14,7 @@ import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { useLocale } from '@/hooks/useLocale';
 import { startRouteLoading } from '@/components/layout/RouteLoading';
+import { useCategories } from '@/hooks/queries/useCategories';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -26,12 +27,24 @@ export function Header() {
   const user = useUser();
   const isAuthor = user?.role === 'Author' || user?.role === 'Admin';
   const logoutMutation = useLogout();
+  const { data: categories = [] } = useCategories();
+  const displayName = user?.displayName ?? user?.email ?? 'Kullanıcı';
 
+  const categoryLinks = categories
+    .filter((category) => category.slug)
+    .map((category) => ({
+      href: `/categories/${category.slug}`,
+      label: category.name ?? category.slug ?? 'Kategori',
+    }));
+
+  const hasCategories = categoryLinks.length > 0;
+
+  const maxCategoryLinks = 3;
+  const slicedCategoryLinks = categoryLinks.slice(0, maxCategoryLinks);
+  const overflowCategoryLinks = categoryLinks.slice(maxCategoryLinks);
   const navLinks = [
     { href: '/', label: messages.nav.home },
-    { href: '/categories/teknoloji', label: messages.nav.tech },
-    { href: '/categories/gezi', label: messages.nav.travel },
-    { href: '/categories/kariyer', label: messages.nav.career },
+    ...(hasCategories ? slicedCategoryLinks : []),
     { href: '/favorites', label: messages.auth.favorites },
     { href: '/about', label: messages.nav.about },
   ];
@@ -64,15 +77,41 @@ export function Header() {
               href={localize(link.href)}
               onClick={() => startRouteLoading(localize(link.href))}
               className={cn(
-                'px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-accent',
+                'px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-blue-600',
                 basePath === link.href || (link.href !== '/' && basePath.startsWith(link.href))
-                  ? 'text-primary'
+                  ? 'text-blue-600'
                   : 'text-muted-foreground'
               )}
             >
               {link.label}
             </Link>
           ))}
+          {overflowCategoryLinks.length > 0 && (
+            <div className="relative group">
+              <button
+                type="button"
+                className={cn(
+                  'px-3 py-2 text-sm font-medium rounded-md transition-colors inline-flex items-center gap-1',
+                'text-muted-foreground hover:text-blue-600'
+              )}
+              >
+                {locale === 'en' ? 'Others' : 'Diğer'}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              <div className="absolute left-0 mt-2 w-48 rounded-lg border bg-popover p-1 shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition">
+                {overflowCategoryLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={localize(link.href)}
+                    onClick={() => startRouteLoading(localize(link.href))}
+                    className="block px-3 py-2 text-sm rounded-md hover:text-blue-600 text-muted-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Right Side */}
@@ -84,14 +123,16 @@ export function Header() {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-full border px-2 py-1.5 hover:bg-accent transition-colors"
+                className="flex items-center gap-2 rounded-full border px-2 py-1.5 hover:border-blue-300 transition-colors"
               >
                 <Avatar className="h-7 w-7">
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                    {getInitials(user.displayName)}
+                    {getInitials(displayName)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium hidden sm:block">{user.displayName.split(' ')[0]}</span>
+                <span className="text-sm font-medium hidden sm:block">
+                  {displayName.split(' ')[0]}
+                </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
 
@@ -100,8 +141,8 @@ export function Header() {
                   <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
                   <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-popover p-1 shadow-lg z-20">
                     <div className="px-3 py-2 border-b mb-1">
-                      <p className="text-sm font-medium">{user.displayName}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email ?? ''}</p>
                     </div>
 
                     <Link
@@ -110,7 +151,7 @@ export function Header() {
                         startRouteLoading(localize('/profile'));
                         setUserMenuOpen(false);
                       }}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                      className="flex items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md"
                     >
                       {messages.auth.profile}
                     </Link>
@@ -120,7 +161,7 @@ export function Header() {
                         startRouteLoading(localize('/favorites'));
                         setUserMenuOpen(false);
                       }}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                      className="flex items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md"
                     >
                       {messages.auth.favorites}
                     </Link>
@@ -134,7 +175,7 @@ export function Header() {
                             startRouteLoading(localize(isAdmin ? '/admin' : '/author/posts'));
                             setUserMenuOpen(false);
                           }}
-                          className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
+                          className="flex items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md"
                         >
                           {isAdmin ? messages.auth.admin : 'Yazar Paneli'}
                         </Link>
@@ -145,7 +186,7 @@ export function Header() {
                     <button
                       onClick={handleLogout}
                       disabled={logoutMutation.isPending}
-                      className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-md text-destructive"
+                      className="flex w-full items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md text-destructive"
                     >
                       {logoutMutation.isPending ? messages.auth.loggingOut : messages.auth.logout}
                     </button>
@@ -187,7 +228,9 @@ export function Header() {
                 }}
                 className={cn(
                   'block px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                  basePath === link.href ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-accent'
+                  basePath === link.href
+                    ? 'text-blue-600'
+                    : 'text-muted-foreground hover:text-blue-600'
                 )}
               >
                 {link.label}

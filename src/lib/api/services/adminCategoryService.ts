@@ -1,5 +1,6 @@
 import apiClient from '../client';
 import { API_ENDPOINTS } from '../endpoints';
+import type { Locale } from '@/lib/i18n';
 import type {
   CategoryDto,
   CreateCategoryRequest,
@@ -10,8 +11,11 @@ import type {
 } from '@/types';
 
 export const adminCategoryService = {
-  async list(): Promise<CategoryDto[]> {
-    const response = await apiClient.get<CategoryDto[]>(API_ENDPOINTS.adminCategories.list);
+  async list(lang: Locale): Promise<CategoryDto[]> {
+    const response = await apiClient.get<CategoryDto[]>(
+      API_ENDPOINTS.adminCategories.list,
+      { params: { language: lang } }
+    );
     return response.data;
   },
 

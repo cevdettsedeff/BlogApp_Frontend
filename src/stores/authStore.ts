@@ -5,15 +5,14 @@ import type { MeDto } from '@/types';
 interface AuthState {
   user: MeDto | null;
   accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
 }
 
 interface AuthActions {
-  setAuth: (user: MeDto, accessToken: string, refreshToken: string) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+  setAuth: (user: MeDto, accessToken: string) => void;
+  setTokens: (accessToken: string) => void;
   setUser: (user: MeDto) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
@@ -24,7 +23,6 @@ type AuthStore = AuthState & AuthActions;
 const initialState: AuthState = {
   user: null,
   accessToken: null,
-  refreshToken: null,
   isAuthenticated: false,
   isAdmin: false,
   isLoading: true,
@@ -35,21 +33,19 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       ...initialState,
 
-      setAuth: (user, accessToken, refreshToken) =>
+      setAuth: (user, accessToken) =>
         set({
           user,
           accessToken,
-          refreshToken,
           isAuthenticated: true,
           isAdmin: user.role === 'Admin',
           isLoading: false,
         }),
 
-      setTokens: (accessToken, refreshToken) =>
+      setTokens: (accessToken) =>
         set((state) => ({
           ...state,
           accessToken,
-          refreshToken,
         })),
 
       setUser: (user) =>
@@ -73,7 +69,6 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         isAdmin: state.isAdmin,
       }),

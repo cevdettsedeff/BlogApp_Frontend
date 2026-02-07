@@ -1,14 +1,15 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
+import { getApiBaseUrl } from './baseUrl';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5275';
+const BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: true,
 });
 
 // Request interceptor - token ekleme
@@ -23,53 +24,44 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - token refresh
+// Response interceptor - token refresh (cookie tabanli)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // 401 ve henüz retry yapılmadıysa
+    // 401 ve henuz retry yapilmadiysa
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
+      try {
+        const response = await axios.post(
+          `${BASE_URL}/api/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
 
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${BASE_URL}/api/auth/refresh`, {
-            refreshToken,
-          });
+        const { accessToken } = response.data as { accessToken: string };
 
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
+        // Store'u guncelle
+        useAuthStore.getState().setTokens(accessToken);
 
-          // Store'u güncelle
-          useAuthStore.getState().setTokens(accessToken, newRefreshToken);
-
-          // Orijinal isteği yeni token ile tekrarla
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          }
-
-          return apiClient(originalRequest);
-        } catch (refreshError) {
-          // Refresh başarısız, logout yap
-          useAuthStore.getState().logout();
-          
-          // Login sayfasına yönlendir (client-side)
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
-          
-          return Promise.reject(refreshError);
+        // Orijinal istegi yeni token ile tekrarla
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
-      } else {
-        // Refresh token yok, logout
+
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // Refresh basarisiz, logout
         useAuthStore.getState().logout();
-        
+
+        // Login sayfasina yonlendir (client-side)
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
+
+        return Promise.reject(refreshError);
       }
     }
 
@@ -80,15 +72,15 @@ apiClient.interceptors.response.use(
 // Helper to extract error message
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data;
+    const data = error.response?.data as { message?: string; errors?: Array<{ errorMessage: string }> };
     if (data?.message) return data.message;
     if (data?.errors && Array.isArray(data.errors)) {
-      return data.errors.map((e: { errorMessage: string }) => e.errorMessage).join(', ');
+      return data.errors.map((e) => e.errorMessage).join(', ');
     }
     return error.message;
   }
   if (error instanceof Error) return error.message;
-  return 'Beklenmeyen bir hata oluştu';
+  return 'Beklenmeyen bir hata olustu';
 }
 
 export default apiClient;

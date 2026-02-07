@@ -1,6 +1,7 @@
 export * from './authService';
 export * from './postService';
 export * from './adminPostService';
+export * from './authorPostService';
 export * from './categoryService';
 export * from './adminCategoryService';
 export * from './commentService';

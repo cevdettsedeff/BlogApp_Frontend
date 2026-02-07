@@ -1,5 +1,6 @@
 import apiClient from '../client';
 import { API_ENDPOINTS } from '../endpoints';
+import type { Locale } from '@/lib/i18n';
 import type {
   AdminSettingsDto,
   UpdateSettingsRequest,
@@ -9,8 +10,11 @@ import type {
 } from '@/types';
 
 export const adminSettingsService = {
-  async get(): Promise<AdminSettingsDto> {
-    const response = await apiClient.get<AdminSettingsDto>(API_ENDPOINTS.adminSettings.get);
+  async get(lang: Locale): Promise<AdminSettingsDto> {
+    const response = await apiClient.get<AdminSettingsDto>(
+      API_ENDPOINTS.adminSettings.get,
+      { params: { language: lang } }
+    );
     return response.data;
   },
 

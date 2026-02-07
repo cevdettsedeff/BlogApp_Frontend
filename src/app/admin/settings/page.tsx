@@ -1,30 +1,17 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Upload, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-
-// Static data
-const recentPosts = [
-  {
-    id: 1,
-    title: 'JWT ile Kimlik Doğrulama Nasıl Yapılır?',
-    categoryName: 'Teknoloji',
-    categorySlug: 'teknoloji',
-    publishedAt: '2024-03-28T10:00:00Z',
-  },
-  {
-    id: 2,
-    title: "Portekiz'de Erasmus Günlüğüm",
-    categoryName: 'Gezi',
-    categorySlug: 'gezi',
-    publishedAt: '2024-03-25T14:00:00Z',
-  },
-];
+import { adminSettingsService } from '@/lib/api/services/adminSettingsService';
+import { adminPostService } from '@/lib/api/services/adminPostService';
+import { useLocale } from '@/hooks/useLocale';
+import type { AdminPostListItemDto, AdminSettingsDto, UpdateSettingsRequest } from '@/types';
 
 type SortKey = 'title' | 'categoryName' | 'publishedAt';
 type SortDir = 'asc' | 'desc';
@@ -55,18 +42,30 @@ const getPageItems = (current: number, total: number) => {
   return items;
 };
 
+const emptySettings: AdminSettingsDto = {
+  id: '',
+  siteTitle: '',
+  siteDescription: '',
+  themeMode: 'Auto',
+  newsletterEnabled: false,
+  newsletterTitle: '',
+  newsletterDescription: '',
+  logoUrl: '',
+  faviconUrl: '',
+  featuredPostId: null,
+  viewCountDelayMs: 10000,
+  createdAt: '',
+  updatedAt: null,
+};
+
 export default function AdminSettingsPage() {
+  const { locale } = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [settings, setSettings] = useState({
-    siteTitle: 'Bilgi Blogu',
-    siteDescription: 'Teknoloji, gezi ve kariyer üzerine yazılar.',
-    logoUrl: '',
-    contactEmail: 'bernaselin@example.com',
-    footerText: '© 2026 Bilgi Blogu. Tüm hakları saklıdır.',
-  });
+  const [settings, setSettings] = useState<AdminSettingsDto>(emptySettings);
 
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -88,8 +87,12 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? '';
-    const nextSort = isSortKey(searchParams.get('sort')) ? (searchParams.get('sort') as SortKey) : DEFAULT_SORT_KEY;
-    const nextDir = isSortDir(searchParams.get('dir')) ? (searchParams.get('dir') as SortDir) : DEFAULT_SORT_DIR;
+    const nextSort = isSortKey(searchParams.get('sort'))
+      ? (searchParams.get('sort') as SortKey)
+      : DEFAULT_SORT_KEY;
+    const nextDir = isSortDir(searchParams.get('dir'))
+      ? (searchParams.get('dir') as SortDir)
+      : DEFAULT_SORT_DIR;
     const nextPageRaw = Number(searchParams.get('page'));
     const nextPage = Number.isFinite(nextPageRaw) && nextPageRaw > 0 ? nextPageRaw : 1;
     const nextPageSizeRaw = Number(searchParams.get('pageSize'));
@@ -115,25 +118,48 @@ export default function AdminSettingsPage() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
+  const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
+    queryKey: ['admin-settings', locale],
+    queryFn: () => adminSettingsService.get(locale),
+  });
+
+  useEffect(() => {
+    if (settingsData) setSettings(settingsData);
+  }, [settingsData]);
+
+  const { data: postsData } = useQuery({
+    queryKey: ['admin-settings-posts', locale, page, pageSize],
+    queryFn: () =>
+      adminPostService.list({
+        language: locale,
+        status: 'Published',
+        page,
+        pageSize,
+      }),
+    keepPreviousData: true,
+  });
+
+  const posts = postsData?.items ?? [];
+
   const filteredPosts = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return recentPosts;
-    return recentPosts.filter((post) =>
-      post.title.toLowerCase().includes(normalized) ||
-      post.categoryName.toLowerCase().includes(normalized)
+    if (!normalized) return posts;
+    return posts.filter((post) =>
+      (post.title || '').toLowerCase().includes(normalized) ||
+      (post.categoryName || '').toLowerCase().includes(normalized)
     );
-  }, [query]);
+  }, [query, posts]);
 
   const sortedPosts = useMemo(() => {
     const sorted = [...filteredPosts];
     sorted.sort((a, b) => {
       if (sortKey === 'publishedAt') {
-        const timeA = new Date(a.publishedAt).getTime();
-        const timeB = new Date(b.publishedAt).getTime();
+        const timeA = new Date(a.publishedAt || 0).getTime();
+        const timeB = new Date(b.publishedAt || 0).getTime();
         return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
       }
-      const valueA = a[sortKey];
-      const valueB = b[sortKey];
+      const valueA = a[sortKey] || '';
+      const valueB = b[sortKey] || '';
       return sortDir === 'asc'
         ? String(valueA).localeCompare(String(valueB))
         : String(valueB).localeCompare(String(valueA));
@@ -141,12 +167,10 @@ export default function AdminSettingsPage() {
     return sorted;
   }, [filteredPosts, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
+  const totalCount = postsData?.totalCount ?? sortedPosts.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedPosts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedPosts.slice(start, start + pageSize);
-  }, [sortedPosts, currentPage, pageSize]);
+  const pagedPosts = sortedPosts;
 
   useEffect(() => {
     if (page > totalPages) {
@@ -154,6 +178,29 @@ export default function AdminSettingsPage() {
       updateQuery({ page: totalPages });
     }
   }, [page, totalPages]);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateSettingsRequest) => adminSettingsService.update(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+    },
+  });
+
+  const onSave = () => {
+    updateMutation.mutate({
+      language: locale,
+      siteTitle: settings.siteTitle,
+      siteDescription: settings.siteDescription,
+      themeMode: settings.themeMode || 'Auto',
+      newsletterEnabled: settings.newsletterEnabled,
+      newsletterTitle: settings.newsletterTitle,
+      newsletterDescription: settings.newsletterDescription,
+      logoUrl: settings.logoUrl,
+      faviconUrl: settings.faviconUrl,
+      featuredPostId: settings.featuredPostId,
+      viewCountDelayMs: settings.viewCountDelayMs ?? 10000,
+    });
+  };
 
   const onSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -186,7 +233,7 @@ export default function AdminSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">Ayarlar</h1>
         <p className="text-muted-foreground">
-          Site başlığı, açıklama, logo ve iletişim bilgilerini güncelleyin.
+          Site başlığı, açıklama, logo ve bülten bilgilerini güncelleyin.
         </p>
       </div>
 
@@ -196,9 +243,10 @@ export default function AdminSettingsPage() {
           <Label htmlFor="siteTitle">Site başlığı</Label>
           <Input
             id="siteTitle"
-            value={settings.siteTitle}
+            value={settings.siteTitle ?? ''}
             onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })}
             className="mt-1.5"
+            disabled={isSettingsLoading}
           />
         </div>
 
@@ -206,9 +254,44 @@ export default function AdminSettingsPage() {
           <Label htmlFor="siteDescription">Site açıklaması</Label>
           <Input
             id="siteDescription"
-            value={settings.siteDescription}
+            value={settings.siteDescription ?? ''}
             onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
             className="mt-1.5"
+            disabled={isSettingsLoading}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="themeMode">Tema</Label>
+          <select
+            id="themeMode"
+            className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm"
+            value={settings.themeMode ?? 'Auto'}
+            onChange={(e) => setSettings({ ...settings, themeMode: e.target.value })}
+            disabled={isSettingsLoading}
+          >
+            <option value="Auto">Otomatik</option>
+            <option value="Light">Açık</option>
+            <option value="Dark">Koyu</option>
+          </select>
+        </div>
+
+        <div>
+          <Label htmlFor="viewCountDelayMs">Goruntulenme artis suresi (ms)</Label>
+          <Input
+            id="viewCountDelayMs"
+            type="number"
+            min={0}
+            max={600000}
+            value={settings.viewCountDelayMs ?? 10000}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                viewCountDelayMs: Math.max(0, Number(e.target.value || 0)),
+              })
+            }
+            className="mt-1.5"
+            disabled={isSettingsLoading}
           />
         </div>
 
@@ -217,12 +300,13 @@ export default function AdminSettingsPage() {
           <div className="flex items-center gap-3 mt-1.5">
             <Input
               id="logoUrl"
-              value={settings.logoUrl}
+              value={settings.logoUrl ?? ''}
               onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
               className="flex-1"
               placeholder="https://..."
+              disabled={isSettingsLoading}
             />
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" type="button">
               <Upload className="h-4 w-4 mr-2" />
               Seç
             </Button>
@@ -230,26 +314,69 @@ export default function AdminSettingsPage() {
         </div>
 
         <div>
-          <Label htmlFor="contactEmail">İletişim e-postası</Label>
+          <Label htmlFor="faviconUrl">Favicon URL</Label>
           <Input
-            id="contactEmail"
-            value={settings.contactEmail}
-            onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+            id="faviconUrl"
+            value={settings.faviconUrl ?? ''}
+            onChange={(e) => setSettings({ ...settings, faviconUrl: e.target.value })}
             className="mt-1.5"
+            disabled={isSettingsLoading}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="newsletterEnabled"
+            type="checkbox"
+            checked={Boolean(settings.newsletterEnabled)}
+            onChange={(e) => setSettings({ ...settings, newsletterEnabled: e.target.checked })}
+            disabled={isSettingsLoading}
+          />
+          <Label htmlFor="newsletterEnabled">Bülten aktif</Label>
+        </div>
+
+        <div>
+          <Label htmlFor="newsletterTitle">Bülten başlığı</Label>
+          <Input
+            id="newsletterTitle"
+            value={settings.newsletterTitle ?? ''}
+            onChange={(e) => setSettings({ ...settings, newsletterTitle: e.target.value })}
+            className="mt-1.5"
+            disabled={!settings.newsletterEnabled}
           />
         </div>
 
         <div>
-          <Label htmlFor="footerText">Footer metni</Label>
+          <Label htmlFor="newsletterDescription">Bülten açıklaması</Label>
           <Input
-            id="footerText"
-            value={settings.footerText}
-            onChange={(e) => setSettings({ ...settings, footerText: e.target.value })}
+            id="newsletterDescription"
+            value={settings.newsletterDescription ?? ''}
+            onChange={(e) => setSettings({ ...settings, newsletterDescription: e.target.value })}
             className="mt-1.5"
+            disabled={!settings.newsletterEnabled}
           />
         </div>
 
-        <Button className="w-full">
+        <div>
+          <Label htmlFor="featuredPostId">Öne çıkan yazı</Label>
+          <select
+            id="featuredPostId"
+            className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm"
+            value={settings.featuredPostId ?? ''}
+            onChange={(e) =>
+              setSettings({ ...settings, featuredPostId: e.target.value || null })
+            }
+          >
+            <option value="">Seçiniz</option>
+            {posts.map((post: AdminPostListItemDto) => (
+              <option key={post.id} value={post.id}>
+                {post.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <Button className="w-full" onClick={onSave} disabled={updateMutation.isPending}>
           Değişiklikleri kaydet
         </Button>
       </div>
@@ -300,14 +427,11 @@ export default function AdminSettingsPage() {
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge
-                      variant={post.categorySlug === 'teknoloji' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
+                    <Badge variant="secondary" className="text-xs">
                       {post.categoryName}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(post.publishedAt).toLocaleDateString('tr-TR')}
+                      {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('tr-TR') : ''}
                     </span>
                   </div>
                   <h3 className="font-medium">{post.title}</h3>
@@ -318,7 +442,7 @@ export default function AdminSettingsPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="text-muted-foreground">Toplam {filteredPosts.length} yazı</div>
+          <div className="text-muted-foreground">Toplam {totalCount} yazı</div>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2">
               <span className="text-muted-foreground">Sayfa boyutu</span>

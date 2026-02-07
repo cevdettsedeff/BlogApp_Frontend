@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,9 @@ import { useLocale } from '@/hooks/useLocale';
 import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { formatDate } from '@/lib/utils';
-import { useAdminPostsStore } from '@/stores/adminPostsStore';
+import { adminPostService } from '@/lib/api/services/adminPostService';
+import { adminCategoryService } from '@/lib/api/services/adminCategoryService';
+import type { CategoryDto } from '@/types';
 
 type SortKey = 'title' | 'categoryName' | 'status' | 'authorDisplayName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
@@ -63,9 +66,7 @@ export default function AdminPostsPage() {
   const router = useRouter();
   const messages = getMessages(locale);
   const t = messages.adminPosts;
-
-  const posts = useAdminPostsStore((state) => state.posts);
-  const deletePost = useAdminPostsStore((state) => state.deletePost);
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get('category') ?? '');
@@ -121,16 +122,33 @@ export default function AdminPostsPage() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const matchesSearch =
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.slug.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = categoryFilter ? post.categoryName === categoryFilter : true;
-      const matchesStatus = statusFilter ? post.status === statusFilter : true;
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [posts, search, categoryFilter, statusFilter]);
+  const { data: categories = [] } = useQuery({
+    queryKey: ['admin-categories', locale],
+    queryFn: () => adminCategoryService.list(locale),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: [
+      'admin-posts',
+      locale,
+      { search, categoryFilter, statusFilter, page, pageSize },
+    ],
+    queryFn: () =>
+      adminPostService.list({
+        q: search || undefined,
+        categorySlug: categoryFilter || undefined,
+        status: statusFilter || undefined,
+        language: locale,
+        page,
+        pageSize,
+      }),
+    keepPreviousData: true,
+  });
+
+  const posts = data?.items ?? [];
+  const totalCount = data?.totalCount ?? posts.length;
+  const filteredPosts = posts;
 
   const sortedPosts = useMemo(() => {
     const sorted = [...filteredPosts];
@@ -149,12 +167,9 @@ export default function AdminPostsPage() {
     return sorted;
   }, [filteredPosts, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedPosts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedPosts.slice(start, start + pageSize);
-  }, [sortedPosts, currentPage, pageSize]);
+  const pagedPosts = sortedPosts;
 
   useEffect(() => {
     if (page > totalPages) {
@@ -170,9 +185,16 @@ export default function AdminPostsPage() {
     [posts, deleteTargetId]
   );
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminPostService.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+    },
+  });
+
   const confirmDelete = () => {
     if (!deleteTargetId) return;
-    deletePost(deleteTargetId);
+    deleteMutation.mutate(deleteTargetId);
     setDeleteTargetId(null);
   };
 
@@ -243,9 +265,11 @@ export default function AdminPostsPage() {
             }}
           >
             <option value="">{t.allCategories}</option>
-            <option value="Teknoloji">{t.categoryTech}</option>
-            <option value="Gezi">{t.categoryTravel}</option>
-            <option value="Kariyer">{t.categoryCareer}</option>
+            {categories.map((category: CategoryDto) => (
+              <option key={category.id} value={category.slug ?? ''}>
+                {category.name}
+              </option>
+            ))}
           </select>
           <select
             className="h-10 rounded-md border bg-background px-3 text-sm"
@@ -322,7 +346,14 @@ export default function AdminPostsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {pagedPosts.map((post) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {t.loading || 'Yükleniyor...'}
+                </td>
+              </tr>
+            ) : (
+              pagedPosts.map((post) => (
               <tr key={post.id} className="hover:bg-muted/30">
                 <td className="px-4 py-3">
                   <p className="font-medium line-clamp-1">{post.title}</p>
@@ -387,8 +418,9 @@ export default function AdminPostsPage() {
                   </div>
                 </td>
               </tr>
-            ))}
-            {pagedPosts.length === 0 && (
+            ))
+            )}
+            {!isLoading && pagedPosts.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   {t.empty}
@@ -401,7 +433,7 @@ export default function AdminPostsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
-          {t.totalLabel} {filteredPosts.length} {t.totalUnit}
+          {t.totalLabel} {totalCount} {t.totalUnit}
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2">

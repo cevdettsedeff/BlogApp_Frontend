@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,7 +20,7 @@ import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { formatDate } from '@/lib/utils';
 import { getReadingTime, renderMarkdown } from '@/components/admin/posts/markdown';
-import { useAdminPostsStore } from '@/stores/adminPostsStore';
+import { adminPostService } from '@/lib/api/services/adminPostService';
 
 export default function AdminPostDetailPage() {
   const router = useRouter();
@@ -27,14 +28,29 @@ export default function AdminPostDetailPage() {
   const { locale } = useLocale();
   const messages = getMessages(locale);
   const t = messages.adminPosts;
+  const queryClient = useQueryClient();
 
-  const deletePost = useAdminPostsStore((state) => state.deletePost);
-  const post = useAdminPostsStore((state) =>
-    state.posts.find((item) => item.id === params.id)
-  );
+  const { data: post, isLoading } = useQuery({
+    queryKey: ['admin-post', params.id],
+    queryFn: () => adminPostService.getById(params.id),
+    enabled: !!params.id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminPostService.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+    },
+  });
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 text-sm text-muted-foreground">Yükleniyor...</div>
+    );
+  }
 
   if (!post) {
     return (
@@ -103,9 +119,9 @@ export default function AdminPostDetailPage() {
           <div className="rounded-lg border p-4 space-y-4">
             <div>
               <p className="text-xs uppercase text-muted-foreground">{t.fieldCover}</p>
-              {post.coverImage ? (
+              {post.coverImageUrl ? (
                 <div className="overflow-hidden rounded-md border">
-                  <img src={post.coverImage} alt={post.title} className="h-40 w-full object-cover" />
+                  <img src={post.coverImageUrl} alt={post.title ?? ''} className="h-40 w-full object-cover" />
                 </div>
               ) : (
                 <p className="text-muted-foreground">{t.noCover}</p>
@@ -156,7 +172,7 @@ export default function AdminPostDetailPage() {
             <Button
               variant="destructive"
               onClick={() => {
-                deletePost(post.id);
+                deleteMutation.mutate(post.id);
                 setIsDeleteOpen(false);
                 router.push(localizedPath('/admin/posts'));
               }}

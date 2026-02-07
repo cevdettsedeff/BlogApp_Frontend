@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,8 +20,7 @@ import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { formatDate } from '@/lib/utils';
 import { getReadingTime, renderMarkdown } from '@/components/admin/posts/markdown';
-import { useAdminPostsStore } from '@/stores/adminPostsStore';
-import { useUser } from '@/stores/authStore';
+import { adminPostService } from '@/lib/api/services/adminPostService';
 
 export default function AuthorPostDetailPage() {
   const router = useRouter();
@@ -28,15 +28,27 @@ export default function AuthorPostDetailPage() {
   const { locale } = useLocale();
   const messages = getMessages(locale);
   const t = messages.adminPosts;
-  const user = useUser();
+  const queryClient = useQueryClient();
 
-  const deletePost = useAdminPostsStore((state) => state.deletePost);
-  const post = useAdminPostsStore((state) =>
-    state.posts.find((item) => item.id === params.id)
-  );
+  const { data: post, isLoading } = useQuery({
+    queryKey: ['admin-post', params.id],
+    queryFn: () => adminPostService.getById(params.id),
+    enabled: !!params.id,
+  });
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminPostService.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['author-posts'] });
+    },
+  });
+
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Yükleniyor...</div>;
+  }
 
   if (!post) {
     return (
@@ -52,9 +64,6 @@ export default function AuthorPostDetailPage() {
     );
   }
 
-  const canManage =
-    user?.role === 'Admin' || (user && post.authorDisplayName === user.displayName);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -69,20 +78,16 @@ export default function AuthorPostDetailPage() {
               {t.backToList}
             </Link>
           </Button>
-          {canManage && (
-            <>
-              <Button asChild>
-                <Link href={localizedPath(`/author/posts/${post.id}/edit`)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t.actionEdit}
-                </Link>
-              </Button>
-              <Button variant="destructive" onClick={() => setIsDeleteOpen(true)}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t.actionDelete}
-              </Button>
-            </>
-          )}
+          <Button asChild>
+            <Link href={localizedPath(`/author/posts/${post.id}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              {t.actionEdit}
+            </Link>
+          </Button>
+          <Button variant="destructive" onClick={() => setIsDeleteOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            {t.actionDelete}
+          </Button>
         </div>
       </div>
 
@@ -112,9 +117,9 @@ export default function AuthorPostDetailPage() {
           <div className="rounded-lg border p-4 space-y-4">
             <div>
               <p className="text-xs uppercase text-muted-foreground">{t.fieldCover}</p>
-              {post.coverImage ? (
+              {post.coverImageUrl ? (
                 <div className="overflow-hidden rounded-md border">
-                  <img src={post.coverImage} alt={post.title} className="h-40 w-full object-cover" />
+                  <img src={post.coverImageUrl} alt={post.title ?? ''} className="h-40 w-full object-cover" />
                 </div>
               ) : (
                 <p className="text-muted-foreground">{t.noCover}</p>
@@ -165,7 +170,7 @@ export default function AuthorPostDetailPage() {
             <Button
               variant="destructive"
               onClick={() => {
-                deletePost(post.id);
+                deleteMutation.mutate(post.id);
                 setIsDeleteOpen(false);
                 router.push(localizedPath('/author/posts'));
               }}

@@ -1,19 +1,14 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-// Static data
-const initialCategories = [
-  { id: '1', name: 'Teknoloji', slug: 'teknoloji', postCount: 24 },
-  { id: '2', name: 'Gezi', slug: 'gezi', postCount: 18 },
-  { id: '3', name: 'Kariyer', slug: 'kariyer', postCount: 12 },
-  { id: '4', name: 'Kişisel Gelişim', slug: 'kisisel-gelisim', postCount: 8 },
-  { id: '5', name: 'Yazılım', slug: 'yazilim', postCount: 15 },
-];
+import { adminCategoryService } from '@/lib/api/services/adminCategoryService';
+import { useLocale } from '@/hooks/useLocale';
+import type { CategoryDto } from '@/types';
 
 type CategoryItem = {
   id: string;
@@ -52,11 +47,24 @@ const getPageItems = (current: number, total: number) => {
 };
 
 export default function AdminCategoriesPage() {
+  const { locale } = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [categories, setCategories] = useState<CategoryItem[]>(() => initialCategories);
+  const { data: categoriesData = [], isLoading } = useQuery({
+    queryKey: ['admin-categories', locale],
+    queryFn: () => adminCategoryService.list(locale),
+  });
+
+  const categories: CategoryItem[] = categoriesData.map((c: CategoryDto) => ({
+    id: c.id,
+    name: c.name ?? '',
+    slug: c.slug ?? '',
+    postCount: 0,
+  }));
+
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     const raw = searchParams.get('sort');
@@ -77,8 +85,12 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? '';
-    const nextSort = isSortKey(searchParams.get('sort')) ? (searchParams.get('sort') as SortKey) : DEFAULT_SORT_KEY;
-    const nextDir = isSortDir(searchParams.get('dir')) ? (searchParams.get('dir') as SortDir) : DEFAULT_SORT_DIR;
+    const nextSort = isSortKey(searchParams.get('sort'))
+      ? (searchParams.get('sort') as SortKey)
+      : DEFAULT_SORT_KEY;
+    const nextDir = isSortDir(searchParams.get('dir'))
+      ? (searchParams.get('dir') as SortDir)
+      : DEFAULT_SORT_DIR;
     const nextPageRaw = Number(searchParams.get('page'));
     const nextPage = Number.isFinite(nextPageRaw) && nextPageRaw > 0 ? nextPageRaw : 1;
     const nextPageSizeRaw = Number(searchParams.get('pageSize'));
@@ -164,12 +176,19 @@ export default function AdminCategoriesPage() {
     );
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminCategoryService.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+    },
+  });
+
   const removeCategory = (id: string) => {
     const target = categories.find((c) => c.id === id);
     const label = target ? `${target.name}` : 'bu kategoriyi';
     const confirmed = window.confirm(`${label} silinsin mi?`);
     if (!confirmed) return;
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+    deleteMutation.mutate(id);
   };
 
   const pageItems = getPageItems(currentPage, totalPages);
@@ -243,7 +262,13 @@ export default function AdminCategoriesPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {paged.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
                   Eşleşen kategori bulunamadı.

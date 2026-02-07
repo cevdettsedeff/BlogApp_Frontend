@@ -14,6 +14,7 @@ import { RouteLoading, startRouteLoading } from '@/components/layout/RouteLoadin
 import { useLogout } from '@/hooks/mutations/useAuth';
 import { getMessages } from '@/lib/i18n-dict';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminLiveViewNotifications } from '@/components/admin/AdminLiveViewNotifications';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -92,8 +93,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 onClick={() => startRouteLoading(addLocaleToPath('/', locale))}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                Siteyi Gör
+                Siteyi Gor
               </Link>
+              <AdminLiveViewNotifications />
               <ThemeToggle />
               <div className="relative">
                 <button
@@ -153,7 +155,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             }}
                             className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
                           >
-                            Siteyi Gör
+                            Siteyi Gor
                           </Link>
                         </>
                       )}
@@ -189,8 +191,3 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </div>
   );
 }
-
-
-
-
-

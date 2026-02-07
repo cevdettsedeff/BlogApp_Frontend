@@ -1,3 +1,5 @@
+import type { Locale } from '@/lib/i18n';
+
 export const API_ENDPOINTS = {
   // Auth
   auth: {
@@ -11,8 +13,9 @@ export const API_ENDPOINTS = {
 
   // Posts (Public)
   posts: {
-    list: '/api/posts',
-    bySlug: (slug: string) => `/api/posts/${slug}`,
+    list: (lang: Locale) => `/api/${lang}/posts`,
+    bySlug: (lang: Locale, slug: string) => `/api/${lang}/posts/${slug}`,
+    incrementView: (lang: Locale, id: string) => `/api/${lang}/posts/${id}/view`,
   },
 
   // Posts (Admin)
@@ -24,10 +27,15 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `/api/admin/posts/${id}`,
   },
 
+  // Posts (Author)
+  authorPosts: {
+    list: '/api/author/posts',
+  },
+
   // Categories (Public)
   categories: {
-    list: '/api/categories',
-    bySlug: (slug: string) => `/api/categories/${slug}`,
+    list: (lang: Locale) => `/api/${lang}/categories`,
+    bySlug: (lang: Locale, slug: string) => `/api/${lang}/categories/${slug}`,
   },
 
   // Categories (Admin)
@@ -42,6 +50,10 @@ export const API_ENDPOINTS = {
   comments: {
     byPostId: (postId: string) => `/api/posts/${postId}/comments`,
     create: '/api/comments',
+    replies: (commentId: string) => `/api/comments/${commentId}/replies`,
+    like: (commentId: string) => `/api/comments/${commentId}/like`,
+    dislike: (commentId: string) => `/api/comments/${commentId}/dislike`,
+    myPending: '/api/comments/mine/pending',
   },
 
   // Comments (Admin)
@@ -69,7 +81,7 @@ export const API_ENDPOINTS = {
 
   // Settings (Public)
   settings: {
-    public: '/api/settings/public',
+    public: (lang: Locale) => `/api/${lang}/settings/public`,
   },
 
   // Settings (Admin)

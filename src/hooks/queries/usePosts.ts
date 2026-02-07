@@ -1,27 +1,34 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { postService } from '@/lib/api/services';
+import { useLocale } from '@/hooks/useLocale';
+import type { Locale } from '@/lib/i18n';
 import type { PostListQuery } from '@/types';
 
 export const postKeys = {
   all: ['posts'] as const,
   lists: () => [...postKeys.all, 'list'] as const,
-  list: (filters: PostListQuery) => [...postKeys.lists(), filters] as const,
+  list: (lang: Locale, filters: PostListQuery) =>
+    [...postKeys.lists(), lang, filters] as const,
   details: () => [...postKeys.all, 'detail'] as const,
-  detail: (slug: string) => [...postKeys.details(), slug] as const,
+  detail: (lang: Locale, slug: string) => [...postKeys.details(), lang, slug] as const,
 };
 
-export function usePosts(query?: PostListQuery) {
+export function usePosts(query?: PostListQuery, locale?: Locale) {
+  const { locale: currentLocale } = useLocale();
+  const lang = locale ?? currentLocale;
   return useQuery({
-    queryKey: postKeys.list(query || {}),
-    queryFn: () => postService.list(query),
+    queryKey: postKeys.list(lang, query || {}),
+    queryFn: () => postService.list(lang, query),
   });
 }
 
-export function useInfinitePosts(query?: Omit<PostListQuery, 'page'>) {
+export function useInfinitePosts(query?: Omit<PostListQuery, 'page'>, locale?: Locale) {
+  const { locale: currentLocale } = useLocale();
+  const lang = locale ?? currentLocale;
   return useInfiniteQuery({
-    queryKey: postKeys.list({ ...query, page: 0 }),
+    queryKey: postKeys.list(lang, { ...query, page: 0 }),
     queryFn: ({ pageParam = 1 }) =>
-      postService.list({ ...query, page: pageParam }),
+      postService.list(lang, { ...query, page: pageParam }),
     getNextPageParam: (lastPage) => {
       const totalPages = Math.ceil(lastPage.totalCount / lastPage.pageSize);
       return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
@@ -30,10 +37,12 @@ export function useInfinitePosts(query?: Omit<PostListQuery, 'page'>) {
   });
 }
 
-export function usePost(slug: string) {
+export function usePost(slug: string, locale?: Locale) {
+  const { locale: currentLocale } = useLocale();
+  const lang = locale ?? currentLocale;
   return useQuery({
-    queryKey: postKeys.detail(slug),
-    queryFn: () => postService.getBySlug(slug),
+    queryKey: postKeys.detail(lang, slug),
+    queryFn: () => postService.getBySlug(lang, slug),
     enabled: !!slug,
   });
 }

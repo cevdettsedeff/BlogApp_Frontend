@@ -6,70 +6,18 @@ import type {
   RegisterRequest,
   RegisterResponse,
   GoogleLoginRequest,
-  RefreshTokenRequest,
-  LogoutRequest,
   MeDto,
   SuccessResponse,
 } from '@/types';
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const email = data.email
-      .trim()
-      .toLowerCase()
-      .split(/[,\s;]/)[0]
-      .replace(/\s+/g, '');
-    const password = data.password
-      .trim()
-      .toLowerCase()
-      .split(/[,\s;]/)[0]
-      .replace(/\s+/g, '')
-      .replace(/[.\-_/]+$/g, '');
-    const isMockLogin =
-      email === 'admin@admin.com.tr' && password.toLowerCase() === 'admin123';
-    if (isMockLogin) {
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      return {
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        expiresAt,
-        user: {
-          id: 'mock-admin-id',
-          displayName: 'Admin',
-          email,
-          role: 'Admin',
-          linkedInUrl: null,
-          instagramUrl: null,
-        },
-      };
-    }
-
-    try {
-      const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.login, {
-        ...data,
-        email,
-        password,
-      });
-      return response.data;
-    } catch (error) {
-      if (isMockLogin) {
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-        return {
-          accessToken: 'mock-access-token',
-          refreshToken: 'mock-refresh-token',
-          expiresAt,
-          user: {
-            id: 'mock-admin-id',
-            displayName: 'Admin',
-            email,
-            role: 'Admin',
-            linkedInUrl: null,
-            instagramUrl: null,
-          },
-        };
-      }
-      throw error;
-    }
+    const email = data.email?.trim().toLowerCase() ?? null;
+    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.login, {
+      ...data,
+      email,
+    });
+    return response.data;
   },
 
   async register(data: RegisterRequest): Promise<RegisterResponse> {
@@ -82,13 +30,13 @@ export const authService = {
     return response.data;
   },
 
-  async refresh(data: RefreshTokenRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.refresh, data);
+  async refresh(): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.auth.refresh, {});
     return response.data;
   },
 
-  async logout(data: LogoutRequest): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(API_ENDPOINTS.auth.logout, data);
+  async logout(): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(API_ENDPOINTS.auth.logout, {});
     return response.data;
   },
 
