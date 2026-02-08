@@ -8,8 +8,8 @@ import { AdminLiveViewPanel } from '@/components/admin/AdminLiveViewPanel';
 
 // Static data
 const stats = [
-  { label: 'Toplam Yazilar', value: 128, icon: FileText, color: 'bg-blue-500' },
-  { label: 'Toplam Kullanici', value: 523, icon: Users, color: 'bg-green-500' },
+  { label: 'Toplam Yazılar', value: 128, icon: FileText, color: 'bg-blue-500' },
+  { label: 'Toplam Kullanıcı', value: 523, icon: Users, color: 'bg-green-500' },
   { label: 'Toplam Yorumlar', value: 312, icon: MessageSquare, color: 'bg-orange-500' },
   { label: 'Toplam Kategoriler', value: 9, icon: FolderOpen, color: 'bg-purple-500' },
 ];
@@ -18,29 +18,29 @@ const recentActivities = [
   {
     id: 1,
     user: 'Selin Soylu',
-    action: 'Yeni yazi paylasti',
-    title: 'Yeni Nesil Yapay Zeka Uygulamalari',
+    action: 'Yeni yazı paylaştı',
+    title: 'Yeni Nesil Yapay Zeka Uygulamaları',
     type: 'post',
     date: '2024-03-28T10:00:00Z',
-    stats: '50 goruntulenme',
+    stats: '50 görüntülenme',
   },
   {
     id: 2,
     user: 'okur.admin@example.com',
-    action: 'Yorum yapti',
-    title: 'Verimli bir Calisma Ortami Yaratmanin Yollari',
+    action: 'Yorum yaptı',
+    title: 'Verimli bir Çalışma Ortamı Yaratmanın Yolları',
     type: 'comment',
     date: '2024-03-27T14:30:00Z',
-    stats: 'yanitlar arasinda olumlu gorus aldi',
+    stats: 'yanıtlar arasında olumlu görüş aldı',
   },
   {
     id: 3,
     user: 'Tuna.admin@example.com',
-    action: 'Yeni yazi paylasti',
-    title: 'Yeni Mezunlar Icin Ilk Is Rehberi',
+    action: 'Yeni yazı paylaştı',
+    title: 'Yeni Mezunlar İçin İlk İş Rehberi',
     type: 'post',
     date: '2024-03-26T09:00:00Z',
-    stats: 'yeni icerik eklendi',
+    stats: 'yeni içerik eklendi',
   },
 ];
 
@@ -49,9 +49,9 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       {/* Welcome */}
       <div>
-        <h1 className="text-2xl font-bold">Hos geldin Berna!</h1>
+        <h1 className="text-2xl font-bold">Hoş geldin Berna!</h1>
         <p className="text-muted-foreground">
-          Admin paneline hos geldiniz. Buradan blog sitenizi yonetebilirsiniz.
+          Admin paneline hoş geldiniz. Buradan blog sitenizi yönetebilirsiniz.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function AdminDashboardPage() {
 
       {/* Visitor Stats Chart */}
       <div className="bg-card border rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Son 7 Gun Ziyaretci Istatistikleri</h2>
+        <h2 className="text-lg font-semibold mb-4">Son 7 Gün Ziyaretçi İstatistikleri</h2>
         <div className="h-64 flex items-end justify-between gap-2">
           {[150, 220, 180, 280, 200, 250, 190].map((value, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-2">
@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
                 />
               </div>
               <span className="text-xs text-muted-foreground">
-                {['Pzt', 'Sal', 'Car', 'Per', 'Cum', 'Cmt', 'Paz'][i]}
+                {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'][i]}
               </span>
             </div>
           ))}
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-sm">{activity.user}</span>
                   <Badge variant="secondary" className="text-xs">
-                    {activity.type === 'post' ? 'yazi' : 'yorum'}
+                    {activity.type === 'post' ? 'yazı' : 'yorum'}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     {formatDate(activity.date)}

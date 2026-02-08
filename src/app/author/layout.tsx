@@ -164,10 +164,10 @@ export default function AuthorLayout({ children }: AuthorLayoutProps) {
             <div className="route-fade">
               {children}
             </div>
-            <RouteLoading variant="skeleton" />
           </div>
         </main>
       </div>
+      <RouteLoading variant="skeleton" />
     </div>
   );
 }

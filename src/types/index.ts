@@ -109,6 +109,8 @@ export interface PostListQuery {
   pageSize?: number;
 }
 
+export type PostListItemDtoPagedResponse = PagedResponse<PostListItemDto>;
+
 // Admin Post Types
 export interface AdminPostListItemDto {
   id: string;
@@ -203,11 +205,21 @@ export interface CategoryDto {
   id: string;
   name: string | null;
   slug: string | null;
+  imageUrl?: string | null;
+}
+
+export interface CategoryCardDto {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  imageUrl: string | null;
+  publishedPostCount: number;
 }
 
 export interface CreateCategoryRequest {
   name: string | null;
   slug: string | null;
+  imageUrl?: string | null;
 }
 
 export interface CreateCategoryResponse {
@@ -217,6 +229,7 @@ export interface CreateCategoryResponse {
 export interface UpdateCategoryRequest {
   name: string | null;
   slug: string | null;
+  imageUrl?: string | null;
 }
 
 export interface UpdateCategoryResponse {
@@ -355,6 +368,34 @@ export interface PublicSettingsDto {
   faviconUrl: string | null;
   featuredPostId: string | null;
   viewCountDelayMs: number;
+}
+
+export interface AboutMemberDto {
+  id: string;
+  displayName: string;
+  role: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  email: string | null;
+  linkedInUrl: string | null;
+  instagramUrl: string | null;
+  publishedPostCount: number;
+}
+
+export interface AboutContactDto {
+  email: string | null;
+  linkedInUrl: string | null;
+  instagramUrl: string | null;
+  siteTitle: string;
+  siteDescription: string;
+}
+
+export interface PublicAboutDto {
+  title: string;
+  description: string;
+  authors: AboutMemberDto[];
+  admins: AboutMemberDto[];
+  contact: AboutContactDto;
 }
 
 export interface AdminSettingsDto {

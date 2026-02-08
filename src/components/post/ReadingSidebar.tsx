@@ -62,11 +62,11 @@ export function ReadingSidebar({
             </p>
             <div className="grid gap-3 text-sm">
               <div className="rounded-xl border bg-background/80 p-3">
-                <p className="text-xs text-muted-foreground">Sure</p>
+                <p className="text-xs text-muted-foreground">Süre</p>
                 <p className="font-semibold">{readingTime} dk</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-3">
-                <p className="text-xs text-muted-foreground">Goruntuleme</p>
+                <p className="text-xs text-muted-foreground">Görüntüleme</p>
                 <p className="font-semibold">
                   <PostViewCount postId={postId} initialCount={initialViewCount} />
                 </p>
@@ -89,7 +89,7 @@ export function ReadingSidebar({
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Yazar</p>
                 <h3 className="font-semibold text-lg">{authorName}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Bu yazinin hazirlayani. Yeni yazilar icin takipte kalin.
+                  Bu yazının hazırlayanı. Yeni yazılar için takipte kalın.
                 </p>
               </div>
             </div>
@@ -111,11 +111,11 @@ export function ReadingSidebar({
             </p>
             <div className="grid gap-3 text-sm">
               <div className="rounded-xl border bg-background/80 p-3">
-                <p className="text-xs text-muted-foreground">Sure</p>
+                <p className="text-xs text-muted-foreground">Süre</p>
                 <p className="font-semibold">{readingTime} dk</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-3">
-                <p className="text-xs text-muted-foreground">Goruntuleme</p>
+                <p className="text-xs text-muted-foreground">Görüntüleme</p>
                 <p className="font-semibold">
                   <PostViewCount postId={postId} initialCount={initialViewCount} />
                 </p>
@@ -138,7 +138,7 @@ export function ReadingSidebar({
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Yazar</p>
                 <h3 className="font-semibold text-lg">{authorName}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Bu yazinin hazirlayani. Yeni yazilar icin takipte kalin.
+                  Bu yazının hazırlayanı. Yeni yazılar için takipte kalın.
                 </p>
               </div>
             </div>

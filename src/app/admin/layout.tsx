@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 onClick={() => startRouteLoading(addLocaleToPath('/', locale))}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                Siteyi Gor
+                Siteyi Gör
               </Link>
               <AdminLiveViewNotifications />
               <ThemeToggle />
@@ -155,7 +155,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             }}
                             className="flex items-center px-3 py-2 text-sm hover:bg-accent rounded-md"
                           >
-                            Siteyi Gor
+                            Siteyi Gör
                           </Link>
                         </>
                       )}
@@ -184,10 +184,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="route-fade">
               {children}
             </div>
-            <RouteLoading variant="skeleton" />
           </div>
         </main>
       </div>
+      <RouteLoading variant="skeleton" />
     </div>
   );
 }

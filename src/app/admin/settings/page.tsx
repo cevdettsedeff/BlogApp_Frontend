@@ -277,7 +277,7 @@ export default function AdminSettingsPage() {
         </div>
 
         <div>
-          <Label htmlFor="viewCountDelayMs">Goruntulenme artis suresi (ms)</Label>
+          <Label htmlFor="viewCountDelayMs">Görüntülenme artış süresi (ms)</Label>
           <Input
             id="viewCountDelayMs"
             type="number"

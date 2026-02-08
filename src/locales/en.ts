@@ -4,7 +4,7 @@ export const en = {
     tech: 'Technology',
     travel: 'Travel',
     career: 'Career',
-    about: 'About',
+    about: 'About Us',
   },
   auth: {
     login: 'Sign In',
@@ -224,10 +224,18 @@ export const en = {
       save: 'Save Changes',
     },
     about: {
-      title: 'About',
+      title: 'About Us',
       experience: 'Experience',
       education: 'Education',
       contact: 'Contact',
+      authors: 'Authors',
+      admins: 'Admins',
+      emptyAuthors: 'No authors found yet.',
+      emptyAdmins: 'No admins found yet.',
+      roleAuthor: 'Author',
+      roleAdmin: 'Admin',
+      publishedPosts: 'Published posts',
+      contactSection: 'Contact',
     },
   },
 };

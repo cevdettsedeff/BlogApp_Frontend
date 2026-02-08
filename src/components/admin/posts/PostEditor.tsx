@@ -192,7 +192,7 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
     if (!element) return;
     const { selectionStart, selectionEnd, value } = element;
     const selected = value.slice(selectionStart, selectionEnd).trim();
-    const altText = selected || 'gorsel-aciklama';
+    const altText = selected || 'görsel-açıklama';
     const urlText = 'https://...';
     const template = `![${altText}](${urlText})`;
     const nextValue = value.slice(0, selectionStart) + template + value.slice(selectionEnd);

@@ -4,7 +4,7 @@
     tech: 'Teknoloji',
     travel: 'Gezi',
     career: 'Kariyer',
-    about: 'Hakkımda',
+    about: 'Hakkımızda',
   },
   auth: {
     login: 'Giriş Yap',
@@ -224,10 +224,18 @@
       save: 'Değişiklikleri Kaydet',
     },
     about: {
-      title: 'Hakkımda',
+      title: 'Hakkımızda',
       experience: 'Deneyim',
       education: 'Eğitim',
       contact: 'İletişim',
+      authors: 'Yazarlar',
+      admins: 'Adminler',
+      emptyAuthors: 'Henüz yazar bulunmuyor.',
+      emptyAdmins: 'Henüz admin bulunmuyor.',
+      roleAuthor: 'Yazar',
+      roleAdmin: 'Admin',
+      publishedPosts: 'Yayınlanan yazı',
+      contactSection: 'İletişim',
     },
   },
 };

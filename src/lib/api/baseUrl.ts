@@ -1,4 +1,5 @@
 const DEFAULT_API_URL = 'https://localhost:7264';
+const DEFAULT_API_TIMEOUT_MS = 10000;
 
 export function getApiBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
@@ -8,4 +9,9 @@ export function getApiBaseUrl(): string {
     }
   }
   return raw;
+}
+
+export function getApiTimeoutMs(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_API_TIMEOUT_MS;
 }

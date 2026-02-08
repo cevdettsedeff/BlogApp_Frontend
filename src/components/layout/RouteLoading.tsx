@@ -339,6 +339,50 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
       );
     }
 
+    if (basePath === '/admin/posts/new') {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="space-y-2">
+            <div className="h-7 w-52 rounded bg-muted/60 animate-pulse" />
+            <div className="h-4 w-72 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="h-80 rounded-2xl bg-muted/60 animate-pulse" />
+          <div className="flex justify-end gap-3">
+            <div className="h-10 w-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-40 rounded bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+      );
+    }
+
+    if (basePath.startsWith('/admin/posts/') && basePath.endsWith('/edit')) {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="space-y-2">
+            <div className="h-7 w-52 rounded bg-muted/60 animate-pulse" />
+            <div className="h-4 w-64 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="h-80 rounded-2xl bg-muted/60 animate-pulse" />
+          <div className="flex justify-end gap-3">
+            <div className="h-10 w-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-40 rounded bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+      );
+    }
+
     if (basePath.startsWith('/admin/posts/')) {
       return (
         <div className="relative p-6 space-y-6">
@@ -452,6 +496,103 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
       );
     }
 
+    if (basePath === '/author' || basePath === '/author/posts') {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-36 rounded bg-muted/60 animate-pulse" />
+              <div className="h-4 w-56 rounded bg-muted/60 animate-pulse" />
+            </div>
+            <div className="h-10 w-32 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-72 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-44 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-44 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-12 rounded bg-muted/60 animate-pulse" />
+            <div className="h-12 rounded bg-muted/60 animate-pulse" />
+            <div className="h-12 rounded bg-muted/60 animate-pulse" />
+            <div className="h-12 rounded bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+      );
+    }
+
+    if (basePath === '/author/posts/new') {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="space-y-2">
+            <div className="h-7 w-52 rounded bg-muted/60 animate-pulse" />
+            <div className="h-4 w-72 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="h-80 rounded-2xl bg-muted/60 animate-pulse" />
+          <div className="flex justify-end gap-3">
+            <div className="h-10 w-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-40 rounded bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+      );
+    }
+
+    if (basePath.startsWith('/author/posts/') && basePath.endsWith('/edit')) {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="space-y-2">
+            <div className="h-7 w-52 rounded bg-muted/60 animate-pulse" />
+            <div className="h-4 w-64 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="h-80 rounded-2xl bg-muted/60 animate-pulse" />
+          <div className="flex justify-end gap-3">
+            <div className="h-10 w-28 rounded bg-muted/60 animate-pulse" />
+            <div className="h-10 w-40 rounded bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+      );
+    }
+
+    if (basePath.startsWith('/author/posts/')) {
+      return (
+        <div className="relative p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-7 w-56 rounded bg-muted/60 animate-pulse" />
+              <div className="h-4 w-72 rounded bg-muted/60 animate-pulse" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 w-32 rounded bg-muted/60 animate-pulse" />
+              <div className="h-10 w-32 rounded bg-muted/60 animate-pulse" />
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+            <div className="space-y-4">
+              <div className="h-16 rounded bg-muted/60 animate-pulse" />
+              <div className="h-96 rounded-2xl bg-muted/60 animate-pulse" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-10 rounded bg-muted/60 animate-pulse" />
+              <div className="h-10 rounded bg-muted/60 animate-pulse" />
+              <div className="h-40 rounded-xl bg-muted/60 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (basePath.startsWith('/admin/')) {
       return (
         <div className="relative p-6 space-y-6">
@@ -513,9 +654,10 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
           <span className="relative inline-flex h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </span>
         <span className="text-sm font-medium text-muted-foreground">
-          {message || 'Yukleniyor...'}
+          {message || 'Yükleniyor...'}
         </span>
       </div>
     </div>
   );
 }
+

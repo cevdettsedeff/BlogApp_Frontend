@@ -9,17 +9,15 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="relative flex min-h-screen flex-col">
       <Header />
-      <main className="relative flex-1">
-        <div className="relative">
-          <div className="route-fade">
-            {children}
-          </div>
-          <RouteLoading variant="skeleton" />
+      <main className="flex-1">
+        <div className="route-fade">
+          {children}
         </div>
       </main>
       <Footer />
+      <RouteLoading variant="skeleton" />
     </div>
   );
 }

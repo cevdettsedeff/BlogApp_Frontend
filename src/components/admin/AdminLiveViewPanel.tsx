@@ -43,11 +43,11 @@ export function AdminLiveViewPanel() {
   return (
     <section className="bg-card border rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Canli Goruntuleme Bildirimleri</h2>
+        <h2 className="text-lg font-semibold">Canlı Görüntüleme Bildirimleri</h2>
         <span className="text-xs text-muted-foreground">Son {items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div className="text-sm text-muted-foreground">Henuz bildirim yok.</div>
+        <div className="text-sm text-muted-foreground">Henüz bildirim yok.</div>
       ) : (
         <div className="space-y-3">
           {items.map((item, index) => (
@@ -56,7 +56,7 @@ export function AdminLiveViewPanel() {
                 <p className="text-sm font-medium truncate">{item.title}</p>
                 <span className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Toplam goruntuleme: {item.viewCount}</p>
+              <p className="text-xs text-muted-foreground mt-1">Toplam görüntüleme: {item.viewCount}</p>
             </div>
           ))}
         </div>

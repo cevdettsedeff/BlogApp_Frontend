@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
   // Categories (Public)
   categories: {
     list: (lang: Locale) => `/api/${lang}/categories`,
+    cards: (lang: Locale) => `/api/${lang}/categories/cards`,
     bySlug: (lang: Locale, slug: string) => `/api/${lang}/categories/${slug}`,
   },
 

@@ -38,7 +38,8 @@ Open http://localhost:3000 in your browser.
 ## Environment Variables
 Create a `.env.local` file if needed. Example:
 ```
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=https://localhost:7264
+NEXT_PUBLIC_API_TIMEOUT_MS=10000
 ```
 
 ## Project Structure
