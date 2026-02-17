@@ -46,8 +46,8 @@ export function Header() {
 
   const navLinks = [
     { href: '/', label: messages.nav.home },
+    ...(isAuthenticated ? [{ href: '/favorites', label: messages.auth.favorites }] : []),
     ...(hasCategories ? slicedCategoryLinks : []),
-    { href: '/favorites', label: messages.auth.favorites },
     { href: '/about', label: messages.nav.about },
   ];
 
@@ -183,16 +183,6 @@ export function Header() {
                       className="flex items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md"
                     >
                       {messages.auth.profile}
-                    </Link>
-                    <Link
-                      href={localize('/favorites')}
-                      onClick={() => {
-                        startRouteLoading(localize('/favorites'));
-                        setUserMenuOpen(false);
-                      }}
-                      className="flex items-center px-3 py-2 text-sm hover:text-blue-600 rounded-md"
-                    >
-                      {messages.auth.favorites}
                     </Link>
 
                     {isAuthor && (

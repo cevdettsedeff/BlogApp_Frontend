@@ -24,6 +24,7 @@ export interface MeDto {
   authorId?: string | null;
   linkedInUrl: string | null;
   instagramUrl: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -326,6 +327,17 @@ export interface ProfileDto {
   role: string | null;
   linkedInUrl: string | null;
   instagramUrl: string | null;
+  avatarUrl: string | null;
+}
+
+export interface UpdateProfileRequest {
+  displayName: string | null;
+  email: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
 }
 
 export interface UpdateEmailRequest {
@@ -352,6 +364,39 @@ export interface UpdateSocialsRequest {
 
 export interface UpdateSocialsResponse {
   success: boolean;
+}
+
+// ============================================
+// Support Request Types
+// ============================================
+export interface CreateSupportRequestRequest {
+  subject: string;
+  content: string;
+}
+
+export interface CreateSupportRequestResponse {
+  id: string;
+  success: boolean;
+}
+
+export interface AdminSupportRequestDto {
+  id: string;
+  userId: string;
+  userDisplayName: string;
+  userEmail: string;
+  subject: string;
+  content: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface SupportRequestCreatedNotification {
+  requestId: string;
+  userId: string;
+  userDisplayName: string;
+  userEmail: string;
+  subject: string;
+  createdAt: string;
 }
 
 // ============================================

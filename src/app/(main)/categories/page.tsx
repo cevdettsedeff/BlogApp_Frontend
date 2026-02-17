@@ -6,22 +6,52 @@ import { getMessages } from '@/lib/i18n-dict';
 import { getLocaleFromRequest } from '@/lib/i18n-server';
 import { getApiBaseUrl } from '@/lib/api/baseUrl';
 import type { Locale } from '@/lib/i18n';
-import type { CategoryCardDto } from '@/types';
+import type { CategoryCardDto, PagedResponse, PostListItemDto } from '@/types';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=900&h=600&fit=crop';
 
 async function fetchCategoryCards(locale: Locale): Promise<CategoryCardDto[]> {
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/${locale}/categories/cards`, {
+  const postsResponse = await fetch(`${baseUrl}/api/${locale}/posts?page=1&pageSize=100`, {
     next: { revalidate: 300 },
     headers: {
       accept: 'application/json',
     },
   });
 
-  if (!response.ok) return [];
-  return (await response.json()) as CategoryCardDto[];
+  if (!postsResponse.ok) return [];
+  const posts = (await postsResponse.json()) as PagedResponse<PostListItemDto>;
+  const grouped = new Map<
+    string,
+    { id: string; name: string; slug: string; count: number; imageUrl: string | null }
+  >();
+
+  posts.items.forEach((post) => {
+    if (!post.categorySlug) return;
+
+    const existing = grouped.get(post.categorySlug);
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+
+    grouped.set(post.categorySlug, {
+      id: `${locale}-${post.categorySlug}`,
+      name: post.categoryName ?? post.categorySlug,
+      slug: post.categorySlug,
+      count: 1,
+      imageUrl: post.coverImageUrl ?? null,
+    });
+  });
+
+  return Array.from(grouped.values()).map((item) => ({
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    imageUrl: item.imageUrl,
+    publishedPostCount: item.count,
+  }));
 }
 
 function paletteByIndex(index: number) {

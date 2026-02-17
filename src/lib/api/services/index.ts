@@ -8,5 +8,6 @@ export * from './commentService';
 export * from './adminCommentService';
 export * from './favoriteService';
 export * from './profileService';
+export * from './supportRequestService';
 export * from './settingsService';
 export * from './adminSettingsService';

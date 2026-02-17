@@ -4,9 +4,9 @@ import { Manrope, Playfair_Display } from 'next/font/google';
 import { Badge } from '@/components/ui/badge';
 import { CommentsSection } from '@/components/post/CommentsSection';
 import { MarkdownContent } from '@/components/post/MarkdownContent';
-import { ReadingSidebar } from '@/components/post/ReadingSidebar';
 import { PostViewCount } from '@/components/post/PostViewCount';
 import { PostViewTracker } from '@/components/post/PostViewTracker';
+import { ReadingSidebar } from '@/components/post/ReadingSidebar';
 import { formatDate } from '@/lib/utils';
 import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
@@ -30,7 +30,10 @@ const bodyFont = Manrope({
   variable: '--font-body',
 });
 
-async function fetchPost(locale: Locale, slug: string): Promise<PostDetailDto | null> {
+async function fetchPost(
+  locale: Locale,
+  slug: string
+): Promise<{ post: PostDetailDto | null; status: number }> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/${locale}/posts/${slug}`, {
     next: { revalidate: 60 },
@@ -39,21 +42,21 @@ async function fetchPost(locale: Locale, slug: string): Promise<PostDetailDto | 
     },
   });
 
-  if (!response.ok) return null;
-  return (await response.json()) as PostDetailDto;
+  if (!response.ok) return { post: null, status: response.status };
+  return { post: (await response.json()) as PostDetailDto, status: response.status };
 }
 
 export default async function PostDetailPage({ params }: { params: { slug: string } }) {
   const locale = getLocaleFromRequest();
   const messages = getMessages(locale);
-  const post = await fetchPost(locale, params.slug);
+  const { post, status } = await fetchPost(locale, params.slug);
   const getCategoryHref = (slug: string) => addLocaleToPath(`/categories/${slug}`, locale);
   const getPostHref = (slug: string) => addLocaleToPath(`/posts/${slug}`, locale);
 
   if (!post) {
     return (
       <div className="container py-16 text-center text-muted-foreground">
-        {messages.pages.post.comments.emptyTitle}
+        {status >= 500 ? messages.pages.post.loadError : messages.pages.post.notFound}
       </div>
     );
   }
@@ -139,7 +142,7 @@ export default async function PostDetailPage({ params }: { params: { slug: strin
       <div className="container pb-14">
         <div className="relative lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
           <div>
-            <div className="prose-blog text-[17px] leading-7 mb-12">
+            <div id="post-content-anchor" className="prose-blog text-[17px] leading-7 mb-12">
               <MarkdownContent content={content} />
             </div>
 

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { getInitials } from '@/lib/utils';
 import { PostViewCount } from '@/components/post/PostViewCount';
 
-interface ReadingSidebarProps {
+export interface ReadingSidebarProps {
   readingTime: number;
   postId: string;
   initialViewCount: number;

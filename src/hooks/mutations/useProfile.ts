@@ -2,10 +2,22 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService } from '@/lib/api/services';
 import { profileKeys } from '@/hooks/queries/useProfile';
 import type {
+  UpdateProfileRequest,
   UpdateEmailRequest,
   UpdatePasswordRequest,
   UpdateSocialsRequest,
 } from '@/types';
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateProfileRequest) => profileService.update(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.current() });
+    },
+  });
+}
 
 export function useUpdateEmail() {
   const queryClient = useQueryClient();

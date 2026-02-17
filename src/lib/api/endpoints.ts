@@ -75,9 +75,20 @@ export const API_ENDPOINTS = {
   // Profile
   profile: {
     get: '/api/profile',
+    update: '/api/profile',
     updateEmail: '/api/profile/email',
     updatePassword: '/api/profile/password',
     updateSocials: '/api/profile/socials',
+  },
+
+  // Support Requests
+  supportRequests: {
+    create: '/api/support-requests',
+  },
+
+  // Support Requests (Admin)
+  adminSupportRequests: {
+    list: '/api/admin/support-requests',
   },
 
   // Settings (Public)

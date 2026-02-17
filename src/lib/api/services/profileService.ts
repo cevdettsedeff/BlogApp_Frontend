@@ -2,6 +2,8 @@ import apiClient from '../client';
 import { API_ENDPOINTS } from '../endpoints';
 import type {
   ProfileDto,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
   UpdateEmailRequest,
   UpdateEmailResponse,
   UpdatePasswordRequest,
@@ -13,6 +15,14 @@ import type {
 export const profileService = {
   async get(): Promise<ProfileDto> {
     const response = await apiClient.get<ProfileDto>(API_ENDPOINTS.profile.get);
+    return response.data;
+  },
+
+  async update(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
+    const response = await apiClient.put<UpdateProfileResponse>(
+      API_ENDPOINTS.profile.update,
+      data
+    );
     return response.data;
   },
 

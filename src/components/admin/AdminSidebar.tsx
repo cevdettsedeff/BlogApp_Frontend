@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import {
@@ -7,6 +7,7 @@ import {
   FolderOpen,
   Users,
   MessageSquare,
+  Inbox,
   Settings,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,10 +17,11 @@ import { startRouteLoading } from '@/components/layout/RouteLoading';
 
 const sidebarLinks = [
   { href: '/admin', label: 'Ana Sayfa', icon: LayoutDashboard },
-  { href: '/admin/posts', label: 'Yazılar', icon: FileText },
+  { href: '/admin/posts', label: 'YazÄ±lar', icon: FileText },
   { href: '/admin/categories', label: 'Kategoriler', icon: FolderOpen },
-  { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
+  { href: '/admin/users', label: 'KullanÄ±cÄ±lar', icon: Users },
   { href: '/admin/comments', label: 'Yorumlar', icon: MessageSquare },
+  { href: '/admin/support-requests', label: 'Kullanıcı Talepleri', icon: Inbox },
   { href: '/admin/settings', label: 'Ayarlar', icon: Settings },
 ];
 
@@ -108,3 +110,4 @@ export function AdminSidebar({
     </>
   );
 }
+

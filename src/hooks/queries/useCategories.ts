@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { categoryService } from '@/lib/api/services';
+import { postService } from '@/lib/api/services';
 import { useLocale } from '@/hooks/useLocale';
 import type { Locale } from '@/lib/i18n';
+import type { CategoryDto } from '@/types';
 
 export const categoryKeys = {
   all: ['categories'] as const,
@@ -16,7 +17,24 @@ export function useCategories(locale?: Locale) {
   const lang = locale ?? currentLocale;
   return useQuery({
     queryKey: categoryKeys.list(lang),
-    queryFn: () => categoryService.list(lang),
+    queryFn: async () => {
+      const posts = await postService.list(lang, { page: 1, pageSize: 100 });
+      const bySlug = new Map<string, CategoryDto>();
+
+      posts.items.forEach((post) => {
+        if (!post.categorySlug) return;
+        if (bySlug.has(post.categorySlug)) return;
+
+        bySlug.set(post.categorySlug, {
+          id: `${lang}-${post.categorySlug}`,
+          name: post.categoryName ?? post.categorySlug,
+          slug: post.categorySlug,
+          imageUrl: null,
+        });
+      });
+
+      return Array.from(bySlug.values());
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes - categories rarely change
   });
 }

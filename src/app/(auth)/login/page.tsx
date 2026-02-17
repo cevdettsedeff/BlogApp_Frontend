@@ -135,7 +135,25 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <Button type="button" variant="outline" className="w-full">
+        <Button type="button" variant="outline" className="w-full gap-2">
+          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+            <path
+              fill="#4285F4"
+              d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.86c2.26-2.08 3.58-5.14 3.58-8.64z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.86-3c-1.07.72-2.44 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.95h-3.99v3.11A12 12 0 0 0 12 24z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.27 14.29A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.37-2.29V6.6H1.28A12 12 0 0 0 0 12c0 1.93.46 3.75 1.28 5.4l3.99-3.11z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.77c1.76 0 3.33.61 4.57 1.81l3.43-3.43C17.95 1.26 15.24 0 12 0A12 12 0 0 0 1.28 6.6l3.99 3.11c.95-2.84 3.6-4.94 6.73-4.94z"
+            />
+          </svg>
           {messages.auth.google}
         </Button>
       </CardContent>
