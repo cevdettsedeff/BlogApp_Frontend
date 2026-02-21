@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn, getInitials } from '@/lib/utils';
-import { addLocaleToPath } from '@/lib/i18n';
+import { addLocaleToPath, defaultLocale, isLocale } from '@/lib/i18n';
 import { startRouteLoading } from '@/components/layout/RouteLoading';
 
 const sidebarLinks = [{ href: '/author/posts', label: 'Yazılar', icon: FileText }];
@@ -14,7 +14,7 @@ interface AuthorSidebarProps {
   basePath: string;
   sidebarOpen: boolean;
   onToggle: () => void;
-  user: { displayName?: string } | null;
+  user: { displayName?: string | null } | null;
 }
 
 export function AuthorSidebar({
@@ -24,6 +24,8 @@ export function AuthorSidebar({
   onToggle,
   user,
 }: AuthorSidebarProps) {
+  const resolvedLocale = isLocale(locale) ? locale : defaultLocale;
+
   return (
     <>
       <aside
@@ -59,8 +61,8 @@ export function AuthorSidebar({
               return (
                 <Link
                   key={link.href}
-                  href={addLocaleToPath(link.href, locale)}
-                  onClick={() => startRouteLoading(addLocaleToPath(link.href, locale))}
+                  href={addLocaleToPath(link.href, resolvedLocale)}
+                  onClick={() => startRouteLoading(addLocaleToPath(link.href, resolvedLocale))}
                   className={cn(
                     'flex items-center gap-3 rounded-lg text-sm font-medium transition-colors',
                     sidebarOpen ? 'px-3 py-2.5' : 'px-2.5 py-2.5 justify-center',

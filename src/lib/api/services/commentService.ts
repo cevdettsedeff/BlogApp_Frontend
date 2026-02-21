@@ -45,6 +45,24 @@ export const commentService = {
     return response.data;
   },
 
+  async listMine(
+    postId?: string,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<PendingCommentDto[]> {
+    const response = await apiClient.get<PendingCommentDto[]>(
+      API_ENDPOINTS.comments.mine,
+      {
+        params: {
+          postId: postId ?? undefined,
+          page,
+          pageSize,
+        },
+      }
+    );
+    return response.data;
+  },
+
   async listMyPending(
     postId?: string,
     page: number = 1,

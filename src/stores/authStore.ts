@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MeDto } from '@/types';
 
 interface AuthState {
@@ -11,8 +10,8 @@ interface AuthState {
 }
 
 interface AuthActions {
-  setAuth: (user: MeDto, accessToken: string) => void;
-  setTokens: (accessToken: string) => void;
+  setAuth: (user: MeDto, accessToken: string | null) => void;
+  setTokens: (accessToken: string | null) => void;
   setUser: (user: MeDto) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
@@ -28,59 +27,39 @@ const initialState: AuthState = {
   isLoading: true,
 };
 
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set) => ({
-      ...initialState,
+export const useAuthStore = create<AuthStore>()((set) => ({
+  ...initialState,
 
-      setAuth: (user, accessToken) =>
-        set({
-          user,
-          accessToken,
-          isAuthenticated: true,
-          isAdmin: user.role === 'Admin',
-          isLoading: false,
-        }),
-
-      setTokens: (accessToken) =>
-        set((state) => ({
-          ...state,
-          accessToken,
-        })),
-
-      setUser: (user) =>
-        set((state) => ({
-          ...state,
-          user,
-          isAdmin: user.role === 'Admin',
-        })),
-
-      logout: () =>
-        set({
-          ...initialState,
-          isLoading: false,
-        }),
-
-      setLoading: (isLoading) => set({ isLoading }),
+  setAuth: (user, accessToken) =>
+    set({
+      user,
+      accessToken,
+      isAuthenticated: Boolean(accessToken),
+      isAdmin: user.role === 'Admin',
+      isLoading: false,
     }),
-    {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        isAuthenticated: state.isAuthenticated,
-        isAdmin: state.isAdmin,
-      }),
-      onRehydrateStorage: () => (state) => {
-        // Hydration tamamlandığında loading'i kapat
-        if (state) {
-          state.setLoading(false);
-        }
-      },
-    }
-  )
-);
+
+  setTokens: (accessToken) =>
+    set((state) => ({
+      ...state,
+      accessToken,
+    })),
+
+  setUser: (user) =>
+    set((state) => ({
+      ...state,
+      user,
+      isAdmin: user.role === 'Admin',
+    })),
+
+  logout: () =>
+    set({
+      ...initialState,
+      isLoading: false,
+    }),
+
+  setLoading: (isLoading) => set({ isLoading }),
+}));
 
 // Selector hooks for better performance
 export const useUser = () => useAuthStore((state) => state.user);

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +104,7 @@ export default function AuthorPostsPage() {
     if (nextPageSize !== pageSize) setPageSize(nextPageSize);
   }, [searchParams, search, categoryFilter, statusFilter, sortKey, sortDir, page, pageSize]);
 
-  const updateQuery = (updates: Record<string, string | number | undefined>) => {
+  const updateQuery = useCallback((updates: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === null) {
@@ -115,7 +115,7 @@ export default function AuthorPostsPage() {
     });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['admin-categories', locale],
@@ -133,10 +133,10 @@ export default function AuthorPostsPage() {
         page,
         pageSize,
       }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
-  const posts = data?.items ?? [];
+  const posts = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.totalCount ?? posts.length;
 
   const sortedPosts = useMemo(() => {
@@ -145,8 +145,8 @@ export default function AuthorPostsPage() {
       const valueA = a[sortKey];
       const valueB = b[sortKey];
       if (sortKey === 'createdAt') {
-        const timeA = new Date(valueA).getTime();
-        const timeB = new Date(valueB).getTime();
+        const timeA = new Date(valueA || 0).getTime();
+        const timeB = new Date(valueB || 0).getTime();
         return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
       }
       return sortDir === 'asc'
@@ -165,7 +165,7 @@ export default function AuthorPostsPage() {
       setPage(totalPages);
       updateQuery({ page: totalPages });
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, updateQuery]);
 
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
 

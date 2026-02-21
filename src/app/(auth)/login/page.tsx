@@ -1,17 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLogin } from '@/hooks/mutations/useAuth';
-import { getErrorMessage } from '@/lib/api/client';
+import { useGoogleLogin, useLogin } from '@/hooks/mutations/useAuth';
+import { getApiErrorCode, getErrorMessage, getFieldErrors } from '@/lib/api/client';
 import { useLocale } from '@/hooks/useLocale';
 import { getMessages } from '@/lib/i18n-dict';
 import { addLocaleToPath } from '@/lib/i18n';
@@ -20,8 +21,15 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const registered = searchParams.get('registered') === 'true';
   const [showPassword, setShowPassword] = useState(false);
+  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
+  const [googleSetupError, setGoogleSetupError] = useState<string | null>(null);
+  const [googlePendingCredential, setGooglePendingCredential] = useState<string | null>(null);
+  const [googleTwoFactorCode, setGoogleTwoFactorCode] = useState('');
+  const [googleNeedsTwoFactor, setGoogleNeedsTwoFactor] = useState(false);
+  const googleButtonContainerRef = useRef<HTMLDivElement | null>(null);
   const { locale } = useLocale();
   const messages = getMessages(locale);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
   const loginSchema = z.object({
     email: z.string().email(messages.auth.validation.invalidEmail),
@@ -31,21 +39,130 @@ export default function LoginPage() {
   type LoginFormData = z.infer<typeof loginSchema>;
   
   const loginMutation = useLogin();
+  const googleLoginMutation = useGoogleLogin();
+
+  const handleGoogleCredential = useCallback(
+    (response: { credential?: string }) => {
+      const credential = response.credential ?? null;
+      if (!credential) {
+        setGoogleSetupError('Google kimlik bilgisi alinamadi.');
+        return;
+      }
+
+      setGoogleSetupError(null);
+      setGooglePendingCredential(credential);
+      setGoogleNeedsTwoFactor(false);
+      setGoogleTwoFactorCode('');
+      googleLoginMutation.mutate({ credential });
+    },
+    [googleLoginMutation]
+  );
+
+  const initializeGoogleSignIn = useCallback(() => {
+    if (!googleClientId) {
+      setGoogleSetupError('Google Client ID eksik. NEXT_PUBLIC_GOOGLE_CLIENT_ID tanimlayin.');
+      return;
+    }
+
+    if (!window.google?.accounts?.id || !googleButtonContainerRef.current) return;
+
+    try {
+      googleButtonContainerRef.current.innerHTML = '';
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      window.google.accounts.id.renderButton(googleButtonContainerRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        width: 360,
+      });
+      setGoogleSetupError(null);
+    } catch {
+      setGoogleSetupError('Google giris baslatilamadi. Lutfen tekrar deneyin.');
+    }
+  }, [googleClientId, handleGoogleCredential]);
   
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
+    clearErrors(['email', 'password']);
+    loginMutation.mutate(data, {
+      onError: (error) => {
+        const fieldErrors = getFieldErrors(error);
+        fieldErrors.forEach((fieldError) => {
+          const normalized = fieldError.field.trim().toLowerCase();
+          if (normalized === 'email') {
+            setError('email', { type: 'server', message: fieldError.message });
+          }
+          if (normalized === 'password') {
+            setError('password', { type: 'server', message: fieldError.message });
+          }
+        });
+      },
+    });
   };
 
+  const handleGoogleTwoFactorSubmit = () => {
+    if (!googlePendingCredential) return;
+    googleLoginMutation.mutate({
+      credential: googlePendingCredential,
+      twoFactorCode: googleTwoFactorCode,
+    });
+  };
+
+  useEffect(() => {
+    if (!googleScriptLoaded) return;
+    if (googleButtonContainerRef.current?.childElementCount) return;
+    initializeGoogleSignIn();
+  }, [googleScriptLoaded, initializeGoogleSignIn]);
+
+  useEffect(() => {
+    if (!googleLoginMutation.isError) return;
+    const errorCode = getApiErrorCode(googleLoginMutation.error);
+    const errorText = getErrorMessage(googleLoginMutation.error).toLowerCase();
+
+    if (errorCode === 'two_factor_required' || errorText.includes('2fa code required')) {
+      setGoogleNeedsTwoFactor(true);
+      setGoogleSetupError('Google hesabin icin 2FA kodu gerekli.');
+      return;
+    }
+
+    if (errorCode === 'two_factor_invalid' || errorText.includes('invalid 2fa code')) {
+      setGoogleNeedsTwoFactor(true);
+      setGoogleSetupError('2FA kodu gecersiz. Tekrar deneyin.');
+      return;
+    }
+
+    setGoogleNeedsTwoFactor(false);
+    setGoogleSetupError(null);
+  }, [googleLoginMutation.error, googleLoginMutation.isError]);
+
   return (
-    <Card>
+    <>
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => {
+          setGoogleScriptLoaded(true);
+          initializeGoogleSignIn();
+        }}
+      />
+      <Card>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">{messages.auth.loginTitle}</CardTitle>
         <CardDescription className="text-center">
@@ -59,9 +176,9 @@ export default function LoginPage() {
           </div>
         )}
 
-        {loginMutation.isError && (
+        {(loginMutation.isError || googleLoginMutation.isError || googleSetupError) && (
           <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-            {getErrorMessage(loginMutation.error)}
+            {googleSetupError ?? getErrorMessage(googleLoginMutation.error ?? loginMutation.error)}
           </div>
         )}
 
@@ -135,27 +252,40 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <Button type="button" variant="outline" className="w-full gap-2">
-          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-            <path
-              fill="#4285F4"
-              d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.86c2.26-2.08 3.58-5.14 3.58-8.64z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.86-3c-1.07.72-2.44 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.95h-3.99v3.11A12 12 0 0 0 12 24z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.27 14.29A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.37-2.29V6.6H1.28A12 12 0 0 0 0 12c0 1.93.46 3.75 1.28 5.4l3.99-3.11z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 4.77c1.76 0 3.33.61 4.57 1.81l3.43-3.43C17.95 1.26 15.24 0 12 0A12 12 0 0 0 1.28 6.6l3.99 3.11c.95-2.84 3.6-4.94 6.73-4.94z"
-            />
-          </svg>
-          {messages.auth.google}
-        </Button>
+        <div className="space-y-3">
+          <div className="flex justify-center" ref={googleButtonContainerRef} />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={!googleScriptLoaded || googleLoginMutation.isPending}
+            onClick={() => window.google?.accounts?.id?.prompt()}
+          >
+            {googleLoginMutation.isPending ? messages.auth.loggingIn : messages.auth.google}
+          </Button>
+
+          {googleNeedsTwoFactor && (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label htmlFor="google-2fa">Google 2FA Kodu</Label>
+              <Input
+                id="google-2fa"
+                value={googleTwoFactorCode}
+                onChange={(event) => setGoogleTwoFactorCode(event.target.value)}
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="123456"
+              />
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleGoogleTwoFactorSubmit}
+                disabled={googleLoginMutation.isPending || googleTwoFactorCode.trim().length !== 6}
+              >
+                {googleLoginMutation.isPending ? messages.auth.loggingIn : '2FA ile devam et'}
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-sm text-center text-muted-foreground">
@@ -165,6 +295,7 @@ export default function LoginPage() {
           </Link>
         </div>
       </CardFooter>
-    </Card>
+      </Card>
+    </>
   );
 }

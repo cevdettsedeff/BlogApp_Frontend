@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Ban, Check, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { formatDate, getInitials } from '@/lib/utils';
 
 // Static data
-const initialUsers = [
+const initialUsers: UserItem[] = [
   {
     id: '1',
     displayName: 'Berna Selin Sedef',
@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
     if (nextPageSize !== pageSize) setPageSize(nextPageSize);
   }, [searchParams, query, roleFilter, statusFilter, sortKey, sortDir, page, pageSize]);
 
-  const updateQuery = (updates: Record<string, string | number | undefined>) => {
+  const updateQuery = useCallback((updates: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === null) {
@@ -161,7 +161,7 @@ export default function AdminUsersPage() {
     });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -207,7 +207,7 @@ export default function AdminUsersPage() {
       setPage(totalPages);
       updateQuery({ page: totalPages });
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, updateQuery]);
 
   const updateRole = (id: string, role: UserRole) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));

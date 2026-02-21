@@ -35,6 +35,24 @@ Open http://localhost:3000 in your browser.
 - `npm run start` — start production server
 - `npm run lint` — run linting
 
+## Docker
+This repository now includes:
+- `Dockerfile` for frontend (Next.js standalone output)
+- `docker-compose.yml` for frontend + backend + PostgreSQL (compose file is in this folder)
+
+Run:
+```bash
+# optional
+copy .env.docker.example .env
+
+docker compose up --build
+```
+
+Services:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8080`
+- PostgreSQL: `localhost:5432`
+
 ## Environment Variables
 Create a `.env.local` file if needed. Example:
 ```

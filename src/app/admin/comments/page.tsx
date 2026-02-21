@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Check, X, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -85,7 +85,7 @@ export default function AdminCommentsPage() {
     if (nextPageSize !== pageSize) setPageSize(nextPageSize);
   }, [searchParams, query, sortKey, sortDir, page, pageSize]);
 
-  const updateQuery = (updates: Record<string, string | number | undefined>) => {
+  const updateQuery = useCallback((updates: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === null) {
@@ -96,15 +96,15 @@ export default function AdminCommentsPage() {
     });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-comments', { page, pageSize }],
     queryFn: () => adminCommentService.listPending({ page, pageSize }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
-  const comments = data?.items ?? [];
+  const comments = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.totalCount ?? comments.length;
 
   const filteredComments = useMemo(() => {
@@ -154,7 +154,7 @@ export default function AdminCommentsPage() {
       setPage(totalPages);
       updateQuery({ page: totalPages });
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, updateQuery]);
 
   const moderateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'Approved' | 'Spam' | 'Pending' }) =>

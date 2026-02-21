@@ -54,11 +54,19 @@ export function useGoogleLogin() {
   const messages = getMessages(locale);
 
   return useMutation({
+    onMutate: () => {
+      startRouteLoading(undefined, messages.auth.loggingIn);
+    },
     mutationFn: (data: GoogleLoginRequest) => authService.googleLogin(data),
     onSuccess: (data) => {
       setAuth(data.user, data.accessToken);
-      const href = addLocaleToPath('/', locale);
-      startRouteLoading(href);
+      const href =
+        data.user.role === 'Admin'
+          ? addLocaleToPath('/admin', locale)
+          : data.user.role === 'Author'
+            ? addLocaleToPath('/author/posts', locale)
+            : addLocaleToPath('/', locale);
+      startRouteLoading(href, messages.auth.loggingIn);
       router.push(href);
     },
   });

@@ -100,7 +100,7 @@ export default function AuthorLayout({ children }: AuthorLayoutProps) {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                      {user ? getInitials(user.displayName) : 'Y'}
+                      {user ? getInitials(user.displayName ?? user.email ?? 'Yazar') : 'Y'}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium hidden md:block">

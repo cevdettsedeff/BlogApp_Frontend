@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (!isLoading && (!isAuthenticated || !isAdmin)) {
       router.push(addLocaleToPath('/login', locale));
     }
-  }, [isAuthenticated, isAdmin, isLoading, router]);
+  }, [isAuthenticated, isAdmin, isLoading, router, locale]);
 
   if (isLoading) {
     return (
@@ -102,9 +102,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   className="flex items-center gap-2"
                   onClick={() => setUserMenuOpen((open) => !open)}
                 >
-                  <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                      {user ? getInitials(user.displayName) : 'A'}
+                      {user ? getInitials(user.displayName ?? user.email ?? 'Admin') : 'A'}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium hidden md:block">

@@ -5,11 +5,13 @@ import { addLocaleToPath } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n-dict';
 import { useLocale } from '@/hooks/useLocale';
 import { useCategories } from '@/hooks/queries/useCategories';
+import { useIsAuthenticated } from '@/stores/authStore';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const { locale } = useLocale();
   const messages = getMessages(locale);
+  const isAuthenticated = useIsAuthenticated();
   const localize = (href: string) => addLocaleToPath(href, locale);
   const { data: categories = [] } = useCategories();
   const maxFooterCategories = 6;
@@ -62,12 +64,14 @@ export function Footer() {
               >
                 {messages.nav.about}
               </Link>
-              <Link
-                href={localize('/favorites')}
-                className="text-sm text-muted-foreground hover:text-blue-600 transition-colors"
-              >
-                {messages.pages.favorites.title}
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  href={localize('/favorites')}
+                  className="text-sm text-muted-foreground hover:text-blue-600 transition-colors"
+                >
+                  {messages.pages.favorites.title}
+                </Link>
+              )}
               <Link
                 href={localize('/categories')}
                 className="text-sm text-muted-foreground hover:text-blue-600 transition-colors"

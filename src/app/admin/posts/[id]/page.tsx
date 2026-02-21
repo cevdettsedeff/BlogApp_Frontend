@@ -121,6 +121,8 @@ export default function AdminPostDetailPage() {
               <p className="text-xs uppercase text-muted-foreground">{t.fieldCover}</p>
               {post.coverImageUrl ? (
                 <div className="overflow-hidden rounded-md border">
+                  {/* Cover image URL can be external and not in Next/Image domain allowlist. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={post.coverImageUrl} alt={post.title ?? ''} className="h-40 w-full object-cover" />
                 </div>
               ) : (
@@ -162,7 +164,7 @@ export default function AdminPostDetailPage() {
           <DialogHeader>
             <DialogTitle>{t.deleteDialogTitle}</DialogTitle>
             <DialogDescription>
-              {t.deleteDialogBody} "{post.title}"
+              {t.deleteDialogBody} &quot;{post.title}&quot;
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

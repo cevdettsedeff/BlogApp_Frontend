@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { postService } from '@/lib/api/services';
+import { categoryService, postService } from '@/lib/api/services';
 import { useLocale } from '@/hooks/useLocale';
 import type { Locale } from '@/lib/i18n';
 import type { CategoryDto } from '@/types';

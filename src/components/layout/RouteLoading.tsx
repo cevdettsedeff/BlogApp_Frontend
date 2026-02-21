@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { stripLocale } from '@/lib/i18n';
@@ -51,14 +51,14 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
   const maxTimerRef = useRef<number | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (maxTimerRef.current) window.clearTimeout(maxTimerRef.current);
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     maxTimerRef.current = null;
     hideTimerRef.current = null;
-  };
+  }, []);
 
-  const show = () => {
+  const show = useCallback(() => {
     if (active) return;
     startRef.current = Date.now();
     setActive(true);
@@ -67,9 +67,9 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
       setActive(false);
       pendingRef.current = false;
     }, MAX_VISIBLE_MS);
-  };
+  }, [active, clearTimers]);
 
-  const hide = () => {
+  const hide = useCallback(() => {
     if (!active) return;
     const elapsed = Date.now() - startRef.current;
     const remaining = Math.max(MIN_VISIBLE_MS - elapsed, 0);
@@ -77,7 +77,7 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
     hideTimerRef.current = window.setTimeout(() => {
       setActive(false);
     }, remaining);
-  };
+  }, [active, clearTimers]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -129,13 +129,13 @@ export function RouteLoading({ variant = 'overlay' }: RouteLoadingProps) {
       window.removeEventListener(STOP_EVENT, onStop);
       clearTimers();
     };
-  }, [active]);
+  }, [show, hide, clearTimers]);
 
   useEffect(() => {
     if (!pendingRef.current) return;
     pendingRef.current = false;
     hide();
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, hide]);
 
   const basePath = stripLocale(targetPathRef.current ?? pathname).pathname;
 

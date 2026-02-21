@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRegister } from '@/hooks/mutations/useAuth';
-import { getErrorMessage } from '@/lib/api/client';
+import { getErrorMessage, getFieldErrors } from '@/lib/api/client';
 import { useLocale } from '@/hooks/useLocale';
 import { getMessages } from '@/lib/i18n-dict';
 import { addLocaleToPath } from '@/lib/i18n';
@@ -44,17 +44,39 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = (data: RegisterFormData) => {
-    registerMutation.mutate({
-      displayName: data.displayName,
-      email: data.email,
-      password: data.password,
-    });
+    clearErrors(['displayName', 'email', 'password', 'confirmPassword']);
+    registerMutation.mutate(
+      {
+        displayName: data.displayName,
+        email: data.email,
+        password: data.password,
+      },
+      {
+        onError: (error) => {
+          const fieldErrors = getFieldErrors(error);
+          fieldErrors.forEach((fieldError) => {
+            const normalized = fieldError.field.trim().toLowerCase();
+            if (normalized === 'displayname') {
+              setError('displayName', { type: 'server', message: fieldError.message });
+            }
+            if (normalized === 'email') {
+              setError('email', { type: 'server', message: fieldError.message });
+            }
+            if (normalized === 'password') {
+              setError('password', { type: 'server', message: fieldError.message });
+            }
+          });
+        },
+      }
+    );
   };
 
   return (

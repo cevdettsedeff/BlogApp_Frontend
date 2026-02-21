@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Manrope, Playfair_Display } from 'next/font/google';
 import { Badge } from '@/components/ui/badge';
 import { CommentsSection } from '@/components/post/CommentsSection';
+import { PostFavoriteButton } from '@/components/post/PostFavoriteButton';
+import { ScrollToCommentsButton } from '@/components/post/ScrollToCommentsButton';
 import { MarkdownContent } from '@/components/post/MarkdownContent';
 import { PostViewCount } from '@/components/post/PostViewCount';
 import { PostViewTracker } from '@/components/post/PostViewTracker';
@@ -107,6 +109,11 @@ export default async function PostDetailPage({ params }: { params: { slug: strin
             </p>
           )}
 
+          <div className="mt-5 flex flex-wrap items-center gap-2 animate-fade-up animate-delay-2">
+            <PostFavoriteButton postId={post.id} strings={messages.pages.post.favorite} />
+            <ScrollToCommentsButton label={messages.pages.post.comments.formTitle} />
+          </div>
+
           {post.tags && post.tags.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2 animate-fade-up animate-delay-3">
               {post.tags.map((tag) => (
@@ -146,7 +153,9 @@ export default async function PostDetailPage({ params }: { params: { slug: strin
               <MarkdownContent content={content} />
             </div>
 
-            <CommentsSection postId={post.id} strings={messages.pages.post.comments} />
+            <section id="post-comments" className="scroll-mt-24 p-2 md:p-3 transition-all duration-300">
+              <CommentsSection postId={post.id} strings={messages.pages.post.comments} />
+            </section>
 
             {relatedPosts.length > 0 && (
               <section className="mt-12 rounded-2xl border p-5">

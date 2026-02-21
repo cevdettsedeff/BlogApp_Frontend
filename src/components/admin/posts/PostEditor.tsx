@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bold, Italic, List, ListOrdered, Quote, Heading2, Heading3, Image, Code } from 'lucide-react';
+import { ArrowLeft, Bold, Italic, List, ListOrdered, Quote, Heading2, Heading3, Image as ImageIcon, Code } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -435,7 +435,13 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
         </div>
         {formState.coverImageUrl && (
           <div className="overflow-hidden rounded-md border">
-            <img src={formState.coverImageUrl} alt={formState.title} className="h-72 w-full object-cover" />
+            {/* Admin can provide arbitrary external URLs; Next/Image domain allowlist is not guaranteed here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={formState.coverImageUrl}
+              alt={formState.title || 'Kapak görseli önizleme'}
+              className="h-72 w-full object-cover"
+            />
           </div>
         )}
         <div className="space-y-3">
@@ -498,7 +504,7 @@ export function PostEditor({ mode, postId }: PostEditorProps) {
               {t.toolbarQuote}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={insertImage} title={t.shortcutImage}>
-              <Image className="h-4 w-4 mr-1" />
+              <ImageIcon className="h-4 w-4 mr-1" />
               {t.toolbarImage}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={insertCodeBlock} title={t.shortcutCode}>

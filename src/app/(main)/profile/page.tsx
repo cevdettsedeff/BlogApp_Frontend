@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, Key, Link as LinkIcon, Mail, MessageSquarePlus, Trash2, User } from 'lucide-react';
+import { Heart, Key, Link as LinkIcon, Mail, MessageSquare, MessageSquarePlus, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,8 @@ import { cn, formatDate, getInitials } from '@/lib/utils';
 import { useLocale } from '@/hooks/useLocale';
 import { getMessages } from '@/lib/i18n-dict';
 import { addLocaleToPath } from '@/lib/i18n';
-import { getErrorMessage } from '@/lib/api/client';
-import { useFavorites, useProfile } from '@/hooks/queries';
+import { getErrorMessage, getFieldErrors } from '@/lib/api/client';
+import { useFavorites, useMyComments, useProfile } from '@/hooks/queries';
 import {
   useCreateSupportRequest,
   useRemoveFavorite,
@@ -23,7 +23,7 @@ import {
 } from '@/hooks/mutations';
 import { useAuthStore, useIsAuthenticated, useUser } from '@/stores/authStore';
 
-type ProfileTab = 'profile' | 'favorites' | 'password' | 'email' | 'socials' | 'support';
+type ProfileTab = 'profile' | 'favorites' | 'comments' | 'password' | 'email' | 'socials' | 'support';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
@@ -37,6 +37,14 @@ export default function ProfilePage() {
 
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: favoritesData, isLoading: favoritesLoading } = useFavorites(1, 20);
+  const commentPageSize = 5;
+  const [commentsPage, setCommentsPage] = useState(1);
+  const { data: myComments, isLoading: myCommentsLoading } = useMyComments(
+    undefined,
+    commentsPage,
+    commentPageSize,
+    activeTab === 'comments'
+  );
 
   const updateProfile = useUpdateProfile();
   const updatePassword = useUpdatePassword();
@@ -60,6 +68,22 @@ export default function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [socialsMessage, setSocialsMessage] = useState<string | null>(null);
   const [supportMessage, setSupportMessage] = useState<string | null>(null);
+  const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string>>({});
+  const [emailFieldErrors, setEmailFieldErrors] = useState<Record<string, string>>({});
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<Record<string, string>>({});
+  const [socialFieldErrors, setSocialFieldErrors] = useState<Record<string, string>>({});
+  const [supportFieldErrors, setSupportFieldErrors] = useState<Record<string, string>>({});
+
+  const extractFieldErrors = (error: unknown): Record<string, string> => {
+    const pairs = getFieldErrors(error);
+    const result: Record<string, string> = {};
+    pairs.forEach((item) => {
+      const key = item.field.trim().toLowerCase().split('.').pop() ?? '';
+      if (!key || result[key]) return;
+      result[key] = item.message;
+    });
+    return result;
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,6 +123,7 @@ export default function ProfilePage() {
     () => [
       { id: 'profile' as const, label: messages.pages.profile.menuProfile, icon: User },
       { id: 'favorites' as const, label: messages.pages.profile.menuFavorites, icon: Heart },
+      { id: 'comments' as const, label: messages.pages.profile.menuComments, icon: MessageSquare },
       { id: 'password' as const, label: messages.pages.profile.menuPassword, icon: Key },
       { id: 'email' as const, label: messages.pages.profile.menuEmail, icon: Mail },
       { id: 'socials' as const, label: messages.pages.profile.menuSocials, icon: LinkIcon },
@@ -121,9 +146,13 @@ export default function ProfilePage() {
   const welcomeText = messages.pages.profile.welcome.replace('{name}', greetingName);
   const emailTabHint = messages.pages.profile.emailTabHint.replace('{tab}', messages.pages.profile.menuEmail);
   const favorites = favoritesData?.items ?? [];
+  const myCommentsList = myComments ?? [];
+  const canGoPrevComments = commentsPage > 1;
+  const canGoNextComments = myCommentsList.length === commentPageSize;
 
   const handleSaveProfile = async () => {
     setProfileMessage(null);
+    setProfileFieldErrors({});
     try {
       await updateProfile.mutateAsync({
         displayName: displayNameInput.trim() || null,
@@ -132,12 +161,14 @@ export default function ProfilePage() {
       });
       setProfileMessage(messages.pages.profile.profileUpdated);
     } catch (error) {
+      setProfileFieldErrors(extractFieldErrors(error));
       setProfileMessage(getErrorMessage(error));
     }
   };
 
   const handleSaveEmail = async () => {
     setEmailMessage(null);
+    setEmailFieldErrors({});
     try {
       await updateProfile.mutateAsync({
         displayName: displayNameInput.trim() || null,
@@ -146,14 +177,17 @@ export default function ProfilePage() {
       });
       setEmailMessage(messages.pages.profile.emailUpdated);
     } catch (error) {
+      setEmailFieldErrors(extractFieldErrors(error));
       setEmailMessage(getErrorMessage(error));
     }
   };
 
   const handleSavePassword = async () => {
     setPasswordMessage(null);
+    setPasswordFieldErrors({});
     if (newPassword !== confirmPassword) {
       setPasswordMessage(messages.pages.profile.passwordsMismatch);
+      setPasswordFieldErrors({ confirmpassword: messages.pages.profile.passwordsMismatch });
       return;
     }
     try {
@@ -166,12 +200,14 @@ export default function ProfilePage() {
       setConfirmPassword('');
       setPasswordMessage(messages.pages.profile.passwordUpdated);
     } catch (error) {
+      setPasswordFieldErrors(extractFieldErrors(error));
       setPasswordMessage(getErrorMessage(error));
     }
   };
 
   const handleSaveSocials = async () => {
     setSocialsMessage(null);
+    setSocialFieldErrors({});
     try {
       await updateSocials.mutateAsync({
         linkedInUrl: linkedinUrl.trim() || null,
@@ -179,14 +215,20 @@ export default function ProfilePage() {
       });
       setSocialsMessage(messages.pages.profile.socialsUpdated);
     } catch (error) {
+      setSocialFieldErrors(extractFieldErrors(error));
       setSocialsMessage(getErrorMessage(error));
     }
   };
 
   const handleSendSupportRequest = async () => {
     setSupportMessage(null);
+    setSupportFieldErrors({});
     if (!supportSubject.trim() || !supportContent.trim()) {
       setSupportMessage(messages.pages.profile.supportRequired);
+      setSupportFieldErrors({
+        ...(supportSubject.trim() ? {} : { subject: messages.pages.profile.supportRequired }),
+        ...(supportContent.trim() ? {} : { content: messages.pages.profile.supportRequired }),
+      });
       return;
     }
     try {
@@ -198,6 +240,7 @@ export default function ProfilePage() {
       setSupportContent('');
       setSupportMessage(messages.pages.profile.supportSent);
     } catch (error) {
+      setSupportFieldErrors(extractFieldErrors(error));
       setSupportMessage(getErrorMessage(error));
     }
   };
@@ -239,7 +282,12 @@ export default function ProfilePage() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (item.id === 'comments') {
+                      setCommentsPage(1);
+                    }
+                  }}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors',
                     activeTab === item.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
@@ -272,6 +320,9 @@ export default function ProfilePage() {
                   onChange={(e) => setDisplayNameInput(e.target.value)}
                   className="mt-1.5"
                 />
+                {profileFieldErrors.displayname && (
+                  <p className="mt-1 text-sm text-destructive">{profileFieldErrors.displayname}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="avatarUrl">{messages.pages.profile.avatarUrl}</Label>
@@ -282,6 +333,9 @@ export default function ProfilePage() {
                   className="mt-1.5"
                   placeholder={messages.pages.profile.avatarPlaceholder}
                 />
+                {profileFieldErrors.avatarurl && (
+                  <p className="mt-1 text-sm text-destructive">{profileFieldErrors.avatarurl}</p>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">{emailTabHint}</p>
               {profileMessage && <p className="text-sm text-muted-foreground">{profileMessage}</p>}
@@ -331,6 +385,66 @@ export default function ProfilePage() {
             </section>
           )}
 
+          {!profileLoading && activeTab === 'comments' && (
+            <section className="space-y-4">
+              <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                {messages.pages.profile.commentsInfo}
+              </div>
+              {myCommentsLoading ? (
+                <p className="text-sm text-muted-foreground">{messages.pages.profile.loading}</p>
+              ) : myCommentsList.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{messages.pages.profile.commentsEmpty}</p>
+              ) : (
+                myCommentsList.map((comment) => (
+                  <article key={comment.id} className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium">{comment.postTitle ?? '-'}</p>
+                      <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                        {comment.status === 'Approved'
+                          ? messages.pages.profile.commentStatusApproved
+                          : comment.status === 'Pending'
+                            ? messages.pages.profile.commentStatusPending
+                            : messages.pages.profile.commentStatusSpam}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-foreground/90">{comment.content ?? ''}</p>
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span>{formatDate(comment.createdAt)}</span>
+                      {comment.postSlug ? (
+                        <Link
+                          href={addLocaleToPath(`/posts/${comment.postSlug}`, locale)}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {messages.pages.profile.goToPost}
+                        </Link>
+                      ) : null}
+                    </div>
+                  </article>
+                ))
+              )}
+              {!myCommentsLoading && (
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCommentsPage((p) => Math.max(1, p - 1))}
+                    disabled={!canGoPrevComments}
+                  >
+                    {messages.pages.profile.commentsPrev}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCommentsPage((p) => p + 1)}
+                    disabled={!canGoNextComments}
+                  >
+                    {messages.pages.profile.commentsNext}
+                  </Button>
+                </div>
+              )}
+            </section>
+          )}
+
           {!profileLoading && activeTab === 'password' && (
             <section className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -346,6 +460,9 @@ export default function ProfilePage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="mt-1.5"
                 />
+                {passwordFieldErrors.currentpassword && (
+                  <p className="mt-1 text-sm text-destructive">{passwordFieldErrors.currentpassword}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="newPassword">{messages.pages.profile.newPassword}</Label>
@@ -356,6 +473,9 @@ export default function ProfilePage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="mt-1.5"
                 />
+                {passwordFieldErrors.newpassword && (
+                  <p className="mt-1 text-sm text-destructive">{passwordFieldErrors.newpassword}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="confirmPassword">{messages.pages.profile.confirmPassword}</Label>
@@ -366,6 +486,9 @@ export default function ProfilePage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="mt-1.5"
                 />
+                {passwordFieldErrors.confirmpassword && (
+                  <p className="mt-1 text-sm text-destructive">{passwordFieldErrors.confirmpassword}</p>
+                )}
               </div>
               {passwordMessage && <p className="text-sm text-muted-foreground">{passwordMessage}</p>}
               <Button onClick={handleSavePassword} disabled={updatePassword.isPending}>
@@ -388,6 +511,9 @@ export default function ProfilePage() {
                   onChange={(e) => setEmailInput(e.target.value)}
                   className="mt-1.5"
                 />
+                {emailFieldErrors.email && (
+                  <p className="mt-1 text-sm text-destructive">{emailFieldErrors.email}</p>
+                )}
               </div>
               {emailMessage && <p className="text-sm text-muted-foreground">{emailMessage}</p>}
               <Button onClick={handleSaveEmail} disabled={updateProfile.isPending}>
@@ -410,6 +536,9 @@ export default function ProfilePage() {
                   onChange={(e) => setLinkedinUrl(e.target.value)}
                   className="mt-1.5"
                 />
+                {socialFieldErrors.linkedinurl && (
+                  <p className="mt-1 text-sm text-destructive">{socialFieldErrors.linkedinurl}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="instagram">Instagram</Label>
@@ -419,6 +548,9 @@ export default function ProfilePage() {
                   onChange={(e) => setInstagramUrl(e.target.value)}
                   className="mt-1.5"
                 />
+                {socialFieldErrors.instagramurl && (
+                  <p className="mt-1 text-sm text-destructive">{socialFieldErrors.instagramurl}</p>
+                )}
               </div>
               {socialsMessage && <p className="text-sm text-muted-foreground">{socialsMessage}</p>}
               <Button onClick={handleSaveSocials} disabled={updateSocials.isPending}>
@@ -441,6 +573,9 @@ export default function ProfilePage() {
                   className="mt-1.5"
                   placeholder={messages.pages.profile.supportSubjectPlaceholder}
                 />
+                {supportFieldErrors.subject && (
+                  <p className="mt-1 text-sm text-destructive">{supportFieldErrors.subject}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="supportContent">{messages.pages.profile.supportContent}</Label>
@@ -451,6 +586,9 @@ export default function ProfilePage() {
                   className="mt-1.5 min-h-[150px] w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   placeholder={messages.pages.profile.supportContentPlaceholder}
                 />
+                {supportFieldErrors.content && (
+                  <p className="mt-1 text-sm text-destructive">{supportFieldErrors.content}</p>
+                )}
               </div>
               {supportMessage && <p className="text-sm text-muted-foreground">{supportMessage}</p>}
               <Button onClick={handleSendSupportRequest} disabled={createSupportRequest.isPending}>

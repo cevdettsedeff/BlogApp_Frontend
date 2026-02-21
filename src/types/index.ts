@@ -50,6 +50,7 @@ export interface RegisterResponse {
 
 export interface GoogleLoginRequest {
   credential: string | null;
+  twoFactorCode?: string | null;
 }
 
 export interface RefreshTokenRequest {
@@ -278,6 +279,7 @@ export interface ReactCommentResponse {
 export interface PendingCommentDto {
   id: string;
   postId: string;
+  postSlug?: string | null;
   postTitle: string | null;
   content: string | null;
   userDisplayName: string | null;
@@ -501,8 +503,12 @@ export interface DeleteResponse {
 // ============================================
 export interface ApiError {
   message: string;
+  code?: string;
+  correlationId?: string;
   errors?: Array<{
-    propertyName: string;
-    errorMessage: string;
+    propertyName?: string;
+    field?: string;
+    errorMessage?: string;
+    message?: string;
   }>;
 }

@@ -74,6 +74,8 @@ const renderInline = (text: string) => {
       if (imageMatch) {
         const [, alt, src] = imageMatch;
         parts.push(
+          // User-provided arbitrary image URLs are rendered as-is in markdown preview.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`img-${keyIndex++}`}
             src={src}
@@ -245,6 +247,8 @@ export const renderMarkdown = (markdown: string) => {
       flushQuote();
       const [, alt, src] = imageLineMatch;
       blocks.push(
+        // User-provided arbitrary image URLs are rendered as-is in markdown preview.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           key={`img-${blocks.length}`}
           src={src}

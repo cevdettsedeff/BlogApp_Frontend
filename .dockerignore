@@ -1,0 +1,10 @@
+.git
+.gitignore
+.next
+node_modules
+npm-debug.log
+coverage
+dist
+*.local
+Dockerfile*
+docker-compose*.yml

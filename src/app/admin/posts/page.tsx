@@ -1,10 +1,10 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -109,7 +109,7 @@ export default function AdminPostsPage() {
     if (nextPageSize !== pageSize) setPageSize(nextPageSize);
   }, [searchParams, search, categoryFilter, statusFilter, sortKey, sortDir, page, pageSize]);
 
-  const updateQuery = (updates: Record<string, string | number | undefined>) => {
+  const updateQuery = useCallback((updates: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === null) {
@@ -120,7 +120,7 @@ export default function AdminPostsPage() {
     });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['admin-categories', locale],
@@ -143,10 +143,10 @@ export default function AdminPostsPage() {
         page,
         pageSize,
       }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
-  const posts = data?.items ?? [];
+  const posts = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.totalCount ?? posts.length;
   const filteredPosts = posts;
 
@@ -156,8 +156,8 @@ export default function AdminPostsPage() {
       const valueA = a[sortKey];
       const valueB = b[sortKey];
       if (sortKey === 'createdAt') {
-        const timeA = new Date(valueA).getTime();
-        const timeB = new Date(valueB).getTime();
+        const timeA = new Date(valueA || 0).getTime();
+        const timeB = new Date(valueB || 0).getTime();
         return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
       }
       return sortDir === 'asc'
@@ -176,7 +176,7 @@ export default function AdminPostsPage() {
       setPage(totalPages);
       updateQuery({ page: totalPages });
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, updateQuery]);
 
   const localizedPath = (href: string) => addLocaleToPath(href, locale);
 
@@ -349,7 +349,7 @@ export default function AdminPostsPage() {
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  {t.loading || 'Yükleniyor...'}
+                  Yükleniyor...
                 </td>
               </tr>
             ) : (

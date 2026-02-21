@@ -156,11 +156,13 @@ export default function AdminCategoriesPage() {
   const sorted = useMemo(() => {
     const next = [...filtered];
     next.sort((a, b) => {
-      const valueA = a[sortKey];
-      const valueB = b[sortKey];
       if (sortKey === 'postCount') {
+        const valueA = a.postCount;
+        const valueB = b.postCount;
         return sortDir === 'asc' ? valueA - valueB : valueB - valueA;
       }
+      const valueA = a[sortKey];
+      const valueB = b[sortKey];
       return sortDir === 'asc'
         ? String(valueA).localeCompare(String(valueB))
         : String(valueB).localeCompare(String(valueA));

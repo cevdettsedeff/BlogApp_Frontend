@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Upload, Search, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -105,7 +105,7 @@ export default function AdminSettingsPage() {
     if (nextPageSize !== pageSize) setPageSize(nextPageSize);
   }, [searchParams, query, sortKey, sortDir, page, pageSize]);
 
-  const updateQuery = (updates: Record<string, string | number | undefined>) => {
+  const updateQuery = useCallback((updates: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '' || value === null) {
@@ -116,7 +116,7 @@ export default function AdminSettingsPage() {
     });
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
     queryKey: ['admin-settings', locale],
@@ -136,10 +136,10 @@ export default function AdminSettingsPage() {
         page,
         pageSize,
       }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
-  const posts = postsData?.items ?? [];
+  const posts = useMemo(() => postsData?.items ?? [], [postsData?.items]);
 
   const filteredPosts = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -177,7 +177,7 @@ export default function AdminSettingsPage() {
       setPage(totalPages);
       updateQuery({ page: totalPages });
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, updateQuery]);
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateSettingsRequest) => adminSettingsService.update(data),
@@ -187,11 +187,16 @@ export default function AdminSettingsPage() {
   });
 
   const onSave = () => {
+    const themeMode =
+      settings.themeMode === 'Light' || settings.themeMode === 'Dark' || settings.themeMode === 'Auto'
+        ? settings.themeMode
+        : 'Auto';
+
     updateMutation.mutate({
       language: locale,
       siteTitle: settings.siteTitle,
       siteDescription: settings.siteDescription,
-      themeMode: settings.themeMode || 'Auto',
+      themeMode,
       newsletterEnabled: settings.newsletterEnabled,
       newsletterTitle: settings.newsletterTitle,
       newsletterDescription: settings.newsletterDescription,

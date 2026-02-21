@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
     replies: (commentId: string) => `/api/comments/${commentId}/replies`,
     like: (commentId: string) => `/api/comments/${commentId}/like`,
     dislike: (commentId: string) => `/api/comments/${commentId}/dislike`,
+    mine: '/api/comments/mine',
     myPending: '/api/comments/mine/pending',
   },
 

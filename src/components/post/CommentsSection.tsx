@@ -84,7 +84,7 @@ export function CommentsSection({ postId, strings }: CommentsSectionProps) {
   const [reactionStates, setReactionStates] = useState<Record<string, ReactionState>>({});
   const [reactingId, setReactingId] = useState<string | null>(null);
 
-  const comments = data ?? [];
+  const comments = useMemo(() => data ?? [], [data]);
   const approvedComments = useMemo(
     () => comments.filter((comment) => comment.status === 'Approved'),
     [comments]
@@ -99,7 +99,7 @@ export function CommentsSection({ postId, strings }: CommentsSectionProps) {
     return myPendingData.map((item) => ({
       id: item.id,
       postId: item.postId,
-      parentCommentId: item.parentCommentId ?? null,
+      parentCommentId: null,
       content: item.content ?? '',
       authorName: item.userDisplayName ?? item.guestName ?? DEFAULT_AUTHOR,
       createdAt: item.createdAt,

@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: blogapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: blog_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - blogapp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d blog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ../BlogApp_Backend
+      dockerfile: Dockerfile
+    container_name: blogapp-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      App__UseHttpsRedirection: "false"
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=blog_db;Username=postgres;Password=postgres
+      Jwt__Issuer: BlogApi
+      Jwt__Audience: BlogWeb
+      Jwt__Key: CHANGEME_DOCKER_ONLY_REPLACE_WITH_A_REAL_SECRET_AT_LEAST_32_CHARS
+      Jwt__AccessTokenMinutes: "60"
+      GoogleAuth__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Security__RefreshCookie__Secure: "false"
+      Security__RefreshCookie__SameSite: Lax
+      Cors__Origins__0: http://localhost:3000
+      Cors__Origins__1: http://127.0.0.1:3000
+      Cors__Origins__2: http://frontend:3000
+      Seed__Enabled: "true"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+        NEXT_PUBLIC_API_TIMEOUT_MS: 10000
+        NEXT_PUBLIC_LOG_LEVEL: warn
+        NEXT_PUBLIC_ENABLE_REMOTE_LOGS: "false"
+        NEXT_PUBLIC_LOG_INGEST_URL: http://localhost:8080/api/logs/client
+        NEXT_PUBLIC_REMOTE_LOG_LEVEL: warn
+        NEXT_PUBLIC_REMOTE_LOG_BATCH_SIZE: 20
+        NEXT_PUBLIC_REMOTE_LOG_FLUSH_MS: 5000
+        NEXT_PUBLIC_REMOTE_LOG_MAX_QUEUE: 200
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    container_name: blogapp-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+
+volumes:
+  blogapp-postgres-data:
