@@ -65,6 +65,11 @@ export const API_ENDPOINTS = {
     delete: (id: string) => `/api/admin/comments/${id}`,
   },
 
+  // Users (Admin)
+  adminUsers: {
+    list: '/api/admin/users',
+  },
+
   // Favorites
   favorites: {
     list: '/api/me/favorites',

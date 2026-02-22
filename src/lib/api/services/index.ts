@@ -6,6 +6,7 @@ export * from './categoryService';
 export * from './adminCategoryService';
 export * from './commentService';
 export * from './adminCommentService';
+export * from './adminUserService';
 export * from './favoriteService';
 export * from './profileService';
 export * from './supportRequestService';

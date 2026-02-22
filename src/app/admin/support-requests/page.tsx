@@ -1,26 +1,77 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mail, MessageSquareText, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminSupportRequests } from '@/hooks/queries';
 import { formatDate } from '@/lib/utils';
+import { useAdminNotificationsStore } from '@/stores/adminNotificationsStore';
 
 const PAGE_SIZE = 10;
 
 export default function AdminSupportRequestsPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useAdminSupportRequests(page, PAGE_SIZE);
+  const clearSupportRequestsUnread = useAdminNotificationsStore((s) => s.clearSupportRequestsUnread);
+  const [highlightedIds, setHighlightedIds] = useState<Record<string, boolean>>({});
+  const prevIdsRef = useRef<string[]>([]);
 
-  const items = data?.items ?? [];
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      clearSupportRequestsUnread();
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [clearSupportRequestsUnread]);
+
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  useEffect(() => {
+    if (isLoading || items.length === 0) return;
+
+    const previousIds = prevIdsRef.current;
+    if (previousIds.length === 0) {
+      prevIdsRef.current = items.map((item) => item.id);
+      return;
+    }
+
+    const currentIds = items.map((item) => item.id);
+    const newIds = currentIds.filter((id) => !previousIds.includes(id));
+
+    if (newIds.length > 0) {
+      setHighlightedIds((prev) => {
+        const next = { ...prev };
+        newIds.forEach((id) => {
+          next[id] = true;
+        });
+        return next;
+      });
+
+      window.setTimeout(() => {
+        setHighlightedIds((prev) => {
+          const next = { ...prev };
+          newIds.forEach((id) => {
+            delete next[id];
+          });
+          return next;
+        });
+      }, 10000);
+    }
+
+    prevIdsRef.current = currentIds;
+  }, [isLoading, items]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Kullanıcı Talepleri</h1>
-        <p className="text-muted-foreground">Kullanıcıların admin ekibine ilettiği talepleri buradan takip edin.</p>
+        <p className="text-muted-foreground">
+          Kullanıcıların admin ekibine ilettiği talepleri buradan takip edin.
+        </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -37,11 +88,20 @@ export default function AdminSupportRequestsPage() {
       {isLoading ? (
         <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Yükleniyor...</div>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Henüz kullanıcı talebi yok.</div>
+        <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
+          Henüz kullanıcı talebi yok.
+        </div>
       ) : (
         <div className="space-y-4">
           {items.map((request) => (
-            <article key={request.id} className="rounded-xl border bg-card p-4 shadow-sm">
+            <article
+              key={request.id}
+              className={`rounded-xl border bg-card p-4 shadow-sm transition-all duration-300 ${
+                highlightedIds[request.id]
+                  ? 'animate-pulse ring-2 ring-primary/50 ring-offset-2 ring-offset-background'
+                  : ''
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">{request.subject}</h2>
                 <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
@@ -94,4 +154,3 @@ export default function AdminSupportRequestsPage() {
     </div>
   );
 }
-

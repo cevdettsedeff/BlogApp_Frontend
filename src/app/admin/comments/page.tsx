@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDate, getInitials } from '@/lib/utils';
 import { adminCommentService } from '@/lib/api/services/adminCommentService';
+import { useAdminNotificationsStore } from '@/stores/adminNotificationsStore';
 import type { PendingCommentDto } from '@/types';
 
 type SortKey = 'createdAt' | 'postTitle' | 'author';
@@ -46,6 +47,7 @@ export default function AdminCommentsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const clearCommentsUnread = useAdminNotificationsStore((s) => s.clearCommentsUnread);
 
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -64,6 +66,16 @@ export default function AdminCommentsPage() {
     const raw = Number(searchParams.get('pageSize'));
     return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_PAGE_SIZE;
   });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      clearCommentsUnread();
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [clearCommentsUnread]);
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? '';

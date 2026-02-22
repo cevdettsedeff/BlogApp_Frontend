@@ -401,6 +401,42 @@ export interface SupportRequestCreatedNotification {
   createdAt: string;
 }
 
+export interface CommentCreatedNotification {
+  commentId: string;
+  postId: string;
+  postTitle: string;
+  userDisplayName: string | null;
+  guestName: string | null;
+  createdAt: string;
+}
+
+export interface UserRegisteredNotification {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface UserLoggedInNotification {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: string;
+  loggedInAt: string;
+}
+
+export interface AdminUserListItemDto {
+  id: string;
+  displayName: string;
+  email: string;
+  role: 'Admin' | 'Author' | 'User' | string;
+  status: 'Active' | 'Banned' | string;
+  createdAt: string;
+  twoFactorEnabled: boolean;
+  lastLoginAt: string | null;
+}
+
 // ============================================
 // Settings Types
 // ============================================

@@ -7,3 +7,4 @@ export * from './useFavorites';
 export * from './useProfile';
 export * from './useSupportRequests';
 export * from './useSettings';
+export * from './useAdminUsers';

@@ -26,7 +26,7 @@ export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOpt
  */
 export function formatDateTime(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('tr-TR', {
+  return d.toLocaleString('tr-TR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
